@@ -13,7 +13,7 @@ std::string _inputFile = "";
 
 std::string _minAlgo  = "Minuit2";
 std::string _dataName = "combData";
-std::string _asimovName = "AsimovSB";
+std::string _asimovName = "AsimovB";
 std::string _wsName = "combWS";
 std::string _mcName = "ModelConfig";
 

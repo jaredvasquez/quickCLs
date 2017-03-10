@@ -64,6 +64,7 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
   data = dataIn;
 
   firstPOI = (RooRealVar*)mc->GetParametersOfInterest()->first();
+
   if(option.Contains("vbfoggf")) firstPOI=w->var("vbf_o_ggf");
   if(option.Contains("vhoggf")) firstPOI=w->var("vh_o_ggf");
   if(option.Contains("tthoggf")) firstPOI=w->var("tth_o_ggf");
@@ -88,10 +89,12 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
   w->saveSnapshot("nominalNuis",*mc->GetNuisanceParameters());
 
   global_status=0;
-  if (!asimovData_0) {
-    asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
-    //asimovData_0 = makeAsimovData2((conditionalExpected ? obs_nll : (RooNLLVar*)NULL), 0., 0.);
-  }
+  //if (!asimovData_0) {
+  //  asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
+  //  //asimovData_0 = makeAsimovData2((conditionalExpected ? obs_nll : (RooNLLVar*)NULL), 0., 0.);
+  //}
+  cout << "Generating asimov with POI = 0" << endl;
+  asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
 
   int asimov0_status=global_status;
   
@@ -107,7 +110,9 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
 
   target_CLs=1-CL;
   
+  cout<<"starting med_limit" <<endl;
   double med_limit = doExp ? getLimit(asimov_0_nll, 1.0) : 1.0;
+  cout<<"finishing med_limit" <<endl;
   int med_status=global_status;
 
   double sigma = med_limit/sqrt(3.84); // pretty close
@@ -331,7 +336,6 @@ double asymCLsTool::getLimit(RooNLLVar* nll, double initial_guess) {
   double pb = calcPb(qmu, sigma_b, mu_guess);
   double CLs = calcCLs(qmu, sigma_b, mu_guess);
   double qmu95 = getQmu95(sigma_b, mu_guess);
-  setMu(mu_guess);
 
   cout << "Initial guess:  " << mu_guess << endl;
   cout << "Sigma(obs):     " << sigma_guess << endl;
@@ -343,6 +347,8 @@ double asymCLsTool::getLimit(RooNLLVar* nll, double initial_guess) {
   cout << "1-pb:           " << pb << endl;
   cout << "CLs:            " << CLs << endl;
   cout << endl;
+  
+  setMu(mu_guess);
 
   int nrDamping = 1;
   map<double, double> guess_to_corr;
@@ -757,6 +763,7 @@ int asymCLsTool::minimize(RooAbsReal* fcn) {
    // mc->GetGlobalObservables()->Print("v");
 
   int printLevel = ROOT::Math::MinimizerOptions::DefaultPrintLevel();
+
   RooFit::MsgLevel msglevel = RooMsgService::instance().globalKillBelow();
   if (printLevel < 0) RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
 
@@ -770,6 +777,7 @@ int asymCLsTool::minimize(RooAbsReal* fcn) {
 
   int status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
                                ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
+  if (status == 0) cout << "Fit succeeded." << endl;
 
 
   // up the strategy
