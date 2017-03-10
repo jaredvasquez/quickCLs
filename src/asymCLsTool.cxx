@@ -784,8 +784,7 @@ double getNLL(RooNLLVar* nll)
 }
 
 
-double findCrossing(double sigma_obs, double sigma, double muhat)
-{
+double findCrossing(double sigma_obs, double sigma, double muhat) {
   double mu_guess = muhat + ROOT::Math::gaussian_quantile(1-target_CLs,1)*sigma_obs*direction;
   int nrItr = 0;
   int nrDamping = 1;
@@ -793,14 +792,12 @@ double findCrossing(double sigma_obs, double sigma, double muhat)
   map<double, double> guess_to_corr;
   double damping_factor = 1.0;
   double mu_pre = mu_guess - 10*mu_guess*precision;
-  while (fabs(mu_guess-mu_pre) > direction*mu_guess*precision)
-  {
+  while (fabs(mu_guess-mu_pre) > direction*mu_guess*precision) {
     double sigma_obs_extrap = sigma_obs;
     double eps = 0;
-    if (extrapolateSigma)
-    {
-      //map<double, double> map_mu_sigma = map_nll_mu_sigma[nll];
-    }
+    //if (extrapolateSigma) {
+    //  map<double, double> map_mu_sigma = map_nll_mu_sigma[nll];
+    //}
 
     mu_pre = mu_guess;
 
@@ -812,27 +809,23 @@ double findCrossing(double sigma_obs, double sigma, double muhat)
     double dqmu_dmu = 2*(mu_guess-muhat)/sigma_obs_extrap/sigma_obs_extrap - 2*qmu*eps;
 
     double corr = damping_factor*(qmu-qmu95)/dqmu_dmu;
-    for (map<double, double>::iterator itr=guess_to_corr.begin();itr!=guess_to_corr.end();itr++)
-    {
-      if (fabs(itr->first - mu_guess) < direction*mu_guess*precision) 
-      {
-	damping_factor *= 0.8;
-	if (verbose) cout << "Changing damping factor to " << damping_factor << ", nrDamping = " << nrDamping << endl;
-	if (nrDamping++ > 10)
-	{
-	  nrDamping = 1;
-	  damping_factor = 1.0;
-	}
-	corr *= damping_factor;
-	break;
+    for (map<double, double>::iterator itr=guess_to_corr.begin();itr!=guess_to_corr.end();itr++) {
+      if (fabs(itr->first - mu_guess) < direction*mu_guess*precision) {
+	      damping_factor *= 0.8;
+	      if (verbose) cout << "Changing damping factor to " << damping_factor << ", nrDamping = " << nrDamping << endl;
+	      if (nrDamping++ > 10) {
+	        nrDamping = 1;
+	        damping_factor = 1.0;
+	      }
+	      corr *= damping_factor;
+	      break;
       }
     }
     guess_to_corr[mu_guess] = corr;
 
     mu_guess = mu_guess - corr;
     nrItr++;
-    if (nrItr > 100)
-    {
+    if (nrItr > 100) {
       cout << "Infinite loop detected in findCrossing. Please intervene." << endl;
       exit(1);
     }
@@ -842,10 +835,8 @@ double findCrossing(double sigma_obs, double sigma, double muhat)
   return mu_guess;
 }
 
-void setMu(double mu)
-{
-  if (mu != mu)
-  {
+void setMu(double mu) {
+  if (mu != mu) {
     cout << "ERROR::POI gave nan. Please intervene." << endl;
     exit(1);
   }
@@ -855,85 +846,71 @@ void setMu(double mu)
 }
 
 
-double getQmu95_brute(double sigma, double mu)
-{
+double getQmu95_brute(double sigma, double mu) {
   double step_size = 0.001;
   double start = step_size;
   if (mu/sigma > 0.2) start = 0;
-  for (double qmu=start;qmu<20;qmu+=step_size)
-  {
+  for (double qmu=start;qmu<20;qmu+=step_size) {
     double CLs = calcCLs(qmu, sigma, mu);
-
     if (CLs < target_CLs) return qmu;
   }
 
   return 20;
 }
 
-double getQmu95(double sigma, double mu)
-{
+double getQmu95(double sigma, double mu) {
   double qmu95 = 0;
   //no sane man would venture this far down into |mu/sigma|
   double target_N = ROOT::Math::gaussian_cdf(1-target_CLs,1);
-  if (fabs(mu/sigma) < 0.25*target_N)
-  {
+  if (fabs(mu/sigma) < 0.25*target_N) {
     qmu95 = 5.83/target_N;
-  }
-  else
-  {
+  } else {
     map<double, double> guess_to_corr;
     double qmu95_guess = pow(ROOT::Math::gaussian_quantile(1-target_CLs,1),2);
     int nrItr = 0;
     int nrDamping = 1;
     double damping_factor = 1.0;
     double qmu95_pre = qmu95_guess - 10*2*qmu95_guess*precision;
-    while (fabs(qmu95_guess-qmu95_pre) > 2*qmu95_guess*precision)
-    {
+    while (fabs(qmu95_guess-qmu95_pre) > 2*qmu95_guess*precision) {
       qmu95_pre = qmu95_guess;
-      if (verbose)
-      {
-	cout << "qmu95_guess = " << qmu95_guess << endl;
-	cout << "CLs = " << calcCLs(qmu95_guess, sigma, mu) << endl;
-	cout << "Derivative = " << calcDerCLs(qmu95_guess, sigma, mu) << endl;
+      if (verbose) {
+        cout << "qmu95_guess = " << qmu95_guess << endl;
+        cout << "CLs = " << calcCLs(qmu95_guess, sigma, mu) << endl;
+        cout << "Derivative = " << calcDerCLs(qmu95_guess, sigma, mu) << endl;
       }
 
       double corr = damping_factor*(calcCLs(qmu95_guess, sigma, mu)-target_CLs)/calcDerCLs(qmu95_guess, sigma, mu);
-      for (map<double, double>::iterator itr=guess_to_corr.begin();itr!=guess_to_corr.end();itr++)
-      {
-	if (fabs(itr->first - qmu95_guess) < 2*qmu95_guess*precision) 
-	{
-	  damping_factor *= 0.8;
-	  if (verbose) cout << "Changing damping factor to " << damping_factor << ", nrDamping = " << nrDamping << endl;
-	  if (nrDamping++ > 10)
-	  {
-	    nrDamping = 1;
-	    damping_factor = 1.0;
-	  }
-	  corr *= damping_factor;
-	}
+      for (map<double, double>::iterator itr=guess_to_corr.begin();itr!=guess_to_corr.end();itr++) {
+	      if (fabs(itr->first - qmu95_guess) < 2*qmu95_guess*precision) {
+	        damping_factor *= 0.8;
+	        if (verbose) cout << "Changing damping factor to " << damping_factor << ", nrDamping = " << nrDamping << endl;
+	        if (nrDamping++ > 10) {
+	          nrDamping = 1;
+	          damping_factor = 1.0;
+	        }
+	        corr *= damping_factor;
+	      }
       }
 
       guess_to_corr[qmu95_guess] = corr;
       qmu95_guess = qmu95_guess - corr;
 
-      if (verbose)
-      {
-	cout << "next guess = " << qmu95_guess << endl; 
-	cout << "precision = " << 2*qmu95_guess*precision << endl;
-	cout << endl;
+      if (verbose) {
+        cout << "next guess = " << qmu95_guess << endl; 
+        cout << "precision = " << 2*qmu95_guess*precision << endl;
+        cout << endl;
       }
+
       nrItr++;
-      if (nrItr > 200)
-      {
-	cout << "Infinite loop detected in getQmu95. Please intervene." << endl;
-	exit(1);
+      if (nrItr > 200) {
+        cout << "Infinite loop detected in getQmu95. Please intervene." << endl;
+        exit(1);
       }
     }
     qmu95 = qmu95_guess;
   }
 
-  if (qmu95 != qmu95) 
-  {
+  if (qmu95 != qmu95) {
     qmu95 = getQmu95_brute(sigma, mu);
   }
   if (verbose) cout << "Returning qmu95 = " << qmu95 << endl;
@@ -941,12 +918,10 @@ double getQmu95(double sigma, double mu)
   return qmu95;
 }
 
-double calcCLs(double qmu_tilde, double sigma, double mu)
-{
+double calcCLs(double qmu_tilde, double sigma, double mu) {
   double pmu = calcPmu(qmu_tilde, sigma, mu);
   double pb = calcPb(qmu_tilde, sigma, mu);
-  if (verbose)
-  {
+  if (verbose) {
     cout << "pmu = " << pmu << endl;
     cout << "pb = " << pb << endl;
   }
@@ -954,56 +929,41 @@ double calcCLs(double qmu_tilde, double sigma, double mu)
   return pmu/(1-pb);
 }
 
-double calcPmu(double qmu, double sigma, double mu)
-{
+double calcPmu(double qmu, double sigma, double mu) {
   double pmu;
-  if (qmu < mu*mu/(sigma*sigma) || !doTilde)
-  {
+  if (qmu < mu*mu/(sigma*sigma) || !doTilde) {
     pmu = 1-ROOT::Math::gaussian_cdf(sqrt(qmu));
-  }
-  else
-  {
+  } else {
     pmu = 1-ROOT::Math::gaussian_cdf((qmu+mu*mu/(sigma*sigma))/(2*fabs(mu/sigma)));
   }
   if (verbose) cout << "for pmu, qmu = " << qmu << ", sigma = " << sigma<< ", mu = " << mu << ", pmu = " << pmu << endl;
   return pmu;
 }
 
-double calcPb(double qmu, double sigma, double mu)
-{
-  if (qmu < mu*mu/(sigma*sigma) || !doTilde)
-  {
+double calcPb(double qmu, double sigma, double mu) {
+  if (qmu < mu*mu/(sigma*sigma) || !doTilde) {
     return 1-ROOT::Math::gaussian_cdf(fabs(mu/sigma) - sqrt(qmu));
-  }
-  else
-  {
+  } else {
     return 1-ROOT::Math::gaussian_cdf((mu*mu/(sigma*sigma) - qmu)/(2*fabs(mu/sigma)));
   }
 }
 
-double calcDerCLs(double qmu, double sigma, double mu)
-{
+double calcDerCLs(double qmu, double sigma, double mu) {
   double dpmu_dq = 0;
   double d1mpb_dq = 0;
 
-  if (qmu < mu*mu/(sigma*sigma))
-  {
+  if (qmu < mu*mu/(sigma*sigma)) {
     double zmu = sqrt(qmu);
     dpmu_dq = -1./(2*sqrt(qmu*2*TMath::Pi()))*exp(-zmu*zmu/2);
-  }
-  else 
-  {
+  } else {
     double zmu = (qmu+mu*mu/(sigma*sigma))/(2*fabs(mu/sigma));
     dpmu_dq = -1./(2*fabs(mu/sigma))*1./(sqrt(2*TMath::Pi()))*exp(-zmu*zmu/2);
   }
 
-  if (qmu < mu*mu/(sigma*sigma))
-  {
+  if (qmu < mu*mu/(sigma*sigma)) {
     double zb = fabs(mu/sigma)-sqrt(qmu);
     d1mpb_dq = -1./sqrt(qmu*2*TMath::Pi())*exp(-zb*zb/2);
-  }
-  else
-  {
+  } else {
     double zb = (mu*mu/(sigma*sigma) - qmu)/(2*fabs(mu/sigma));
     d1mpb_dq = -1./(2*fabs(mu/sigma))*1./(sqrt(2*TMath::Pi()))*exp(-zb*zb/2);
   }
@@ -1012,20 +972,17 @@ double calcDerCLs(double qmu, double sigma, double mu)
   return dpmu_dq/(1-pb)-calcCLs(qmu, sigma, mu)/(1-pb)*d1mpb_dq;
 }
 
-int minimize(RooNLLVar* nll)
-{
+int minimize(RooNLLVar* nll) {
   nll->enableOffsetting(true);
   nrMinimize++;
   RooAbsReal* fcn = (RooAbsReal*)nll;
   return minimize(fcn);
 }
 
-int minimize(RooAbsReal* fcn)
-{
+int minimize(RooAbsReal* fcn) {
   static int nrItr = 0;
    // cout << "Starting minimization. Using these global observables" << endl;
    // mc->GetGlobalObservables()->Print("v");
-
 
   int printLevel = ROOT::Math::MinimizerOptions::DefaultPrintLevel();
   RooFit::MsgLevel msglevel = RooMsgService::instance().globalKillBelow();
@@ -1039,20 +996,19 @@ int minimize(RooAbsReal* fcn)
   minim.setProfile();
   minim.setEps(1);
 
-  int status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
+  int status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
+                               ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
 
 
-//up the strategy
-  if (status != 0 && status != 1 && strat < 2)
-  {
+  // up the strategy
+  if (status != 0 && status != 1 && strat < 2) {
     strat++;
     cout << "Fit failed with status " << status << ". Retrying with strategy " << strat << endl;
     minim.setStrategy(strat);
     status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
   }
 
-  if (status != 0 && status != 1 && strat < 2)
-  {
+  if (status != 0 && status != 1 && strat < 2) {
     strat++;
     cout << "Fit failed with status " << status << ". Retrying with strategy " << strat << endl;
     minim.setStrategy(strat);
@@ -1061,9 +1017,8 @@ int minimize(RooAbsReal* fcn)
 
   //cout << "status is " << status << endl;
 
-// //switch minuit version and try again
-  if (status != 0 && status != 1)
-  {
+  //switch minuit version and try again
+  if (status != 0 && status != 1) {
     string minType = ROOT::Math::MinimizerOptions::DefaultMinimizerType();
     string newMinType;
     if (minType == "Minuit2") newMinType = "Minuit";
@@ -1075,49 +1030,43 @@ int minimize(RooAbsReal* fcn)
     strat = ROOT::Math::MinimizerOptions::DefaultStrategy();
     minim.setStrategy(strat);
 
-    status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
+    status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
+                             ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
 
 
-    if (status != 0 && status != 1 && strat < 2)
-    {
+    if (status != 0 && status != 1 && strat < 2) {
       strat++;
       cout << "Fit failed with status " << status << ". Retrying with strategy " << strat << endl;
       minim.setStrategy(strat);
-      status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
+      status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
+                               ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
     }
 
-    if (status != 0 && status != 1 && strat < 2)
-    {
+    if (status != 0 && status != 1 && strat < 2) {
       strat++;
       cout << "Fit failed with status " << status << ". Retrying with strategy " << strat << endl;
       minim.setStrategy(strat);
-      status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
+      status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
+                               ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
     }
 
     ROOT::Math::MinimizerOptions::SetDefaultMinimizer(minType.c_str());
   }
 
-  if (status != 0 && status != 1)
-  {
+  if (status != 0 && status != 1) {
     nrItr++;
-    if (nrItr > maxRetries)
-    {
+    if (nrItr > maxRetries) {
       nrItr = 0;
       global_status++;
       cout << "WARNING::Fit failure unresolved with status " << status << endl;
       return status;
-    }
-    else
-    {
-      if (nrItr == 0) // retry with mu=0 snapshot
-      {
-	w->loadSnapshot("conditionalNuis_0");
-	return minimize(fcn);
-      }
-      else if (nrItr == 1) // retry with nominal snapshot
-      {
-	w->loadSnapshot("nominalNuis");
-	return minimize(fcn);
+    } else {
+      if (nrItr == 0) { // retry with mu=0 snapshot
+        w->loadSnapshot("conditionalNuis_0");
+        return minimize(fcn);
+      } else if (nrItr == 1) { // retry with nominal snapshot 
+        w->loadSnapshot("nominalNuis");
+        return minimize(fcn);
       }
     }
   }
@@ -1132,219 +1081,9 @@ int minimize(RooAbsReal* fcn)
 }
 
 
-/*
-RooDataSet* makeAsimovData2(RooDataSet* conditioningData, double mu_true, double mu_prof, string* mu_str, string* mu_prof_str)
-{
-  RooNLLVar* conditioningNLL = NULL;
-  if (conditioningData)
-  {
-    conditioningNLL = (RooNLLVar*)mc->GetPdf()->createNLL(*conditioningData);
-  }
-  return makeAsimovData2(conditioningNLL, mu_true, mu_prof, mu_str, mu_prof_str);
-}
-
-
-RooDataSet* makeAsimovData2(RooNLLVar* conditioningNLL, double mu_true, double mu_prof, string* mu_str, string* mu_prof_str)
-{
-  if (mu_prof == -999) mu_prof = mu_true;
-  bool doTest = 0;
-
-  cout << "Creating asimov data at mu = " << mu_true << ", profiling at mu = " << mu_prof << endl;
-  int printLevel = ROOT::Math::MinimizerOptions::DefaultPrintLevel();
-
-  int test = 0;
-  if (doTest) cout << "test = " << test++ << endl;
-
-  int _printLevel = 0;
-
-  stringstream muStr;
-  muStr << setprecision(5);
-  muStr << "_" << mu_true;
-  if (mu_str) *mu_str = muStr.str();
-
-  stringstream muStrProf;
-  muStrProf << setprecision(5);
-  muStrProf << "_" << mu_prof;
-  if (mu_prof_str) *mu_prof_str = muStrProf.str();
-
-
-  if (doTest) cout << "test = " << test++ << endl;
-  const RooArgSet* globs = mc->GetGlobalObservables();
-  const RooArgSet* nuis = mc->GetNuisanceParameters();
-  const RooArgSet* obs = mc->GetObservables();
-  const RooArgSet* pois = mc->GetParametersOfInterest();
-
-  TIterator* gItr = globs->createIterator();
-  TIterator* nItr = nuis->createIterator();
-  RooRealVar* var;
-
-  //cout << "test = " << test++ << endl;
-  RooArgSet emptySet;
-  RooArgSet params(*nuis);
-  params.add(*globs);
-  params.add(*pois);
-  w->saveSnapshot("initial_params", params);
-  
-  if (doTest) cout << "test = " << test++ << endl;
-
-//condition the MLEs
-  if (conditioningNLL)
-  {
-    //get the conditional MLEs
-    firstPOI->setVal(mu_prof);
-    firstPOI->setConstant(1);
-    minimize(conditioningNLL);
-  }
-
-  if (doTest) cout << "test = " << test++ << endl;
-  w->saveSnapshot(("conditionalNuis" +muStrProf.str()).c_str(),*nuis);
-
-
-//to find the conditional globs, do a fit to the constraint only pdf with the globs floating and the MLEs constant    
-  RooArgSet obsCopy = *obs;
-  RooArgSet nuisCopy = *nuis;
-    
-  RooArgSet constraints(*mc->GetPdf()->getAllConstraints(obsCopy, nuisCopy));
-  RooRealVar minusOne("minusOne","minusOne",-1);
-  constraints.add(minusOne);
-  RooProduct constrFunc("constrFunc","constrFunc",constraints);
-    
-  if (doTest) cout << "test = " << test++ << endl;
-  while ((var = (RooRealVar*)gItr->Next()))
-  {
-    var->setConstant(false);
-  }
-  gItr->Reset();
-
-  while ((var = (RooRealVar*)nItr->Next()))
-  {
-    var->setConstant(true);
-  }
-  nItr->Reset();
-
-  minimize(&constrFunc);
-
-  while ((var = (RooRealVar*)gItr->Next()))
-  {
-    var->setConstant(true);
-  }
-  gItr->Reset();
-
-  while ((var = (RooRealVar*)nItr->Next()))
-  {
-    var->setConstant(false);
-  }
-  nItr->Reset();
-
-  w->saveSnapshot(("conditionalGlobs"+muStrProf.str()).c_str(),*globs);
-  
-
-  if (doTest) cout << "test = " << test++ << endl;
-  
-
-
-//make the asimov data
-  const char* weightName="weightVar";
-  RooArgSet obsAndWeight;
-  obsAndWeight.add(*mc->GetObservables());
-
-  RooRealVar* weightVar = NULL;
-  if (!(weightVar = w->var(weightName)))
-  {
-    w->import(*(new RooRealVar(weightName, weightName, 1,0,10000000)));
-    weightVar = w->var(weightName);
-  }
-  obsAndWeight.add(*w->var(weightName));
-
-
-  if (doTest) cout << "test = " << test++ << endl;
-
-  RooSimultaneous* simPdf = dynamic_cast<RooSimultaneous*>(mc->GetPdf());
-  map<string, RooDataSet*> asimovDataMap;
-
-  //try fix for sim pdf
-  RooCategory* channelCat = (RooCategory*)&simPdf->indexCat();
-  TIterator* iter = channelCat->typeIterator() ;
-  RooCatType* tt = NULL;
-  int nrIndices = 0;
-  int iFrame=0;
-  while((tt=(RooCatType*) iter->Next())) {
-    nrIndices++;
-  }
-  for (int i=0;i<nrIndices;i++){
-    channelCat->setIndex(i);
-    iFrame++;
-    // Get pdf associated with state from simpdf
-    RooAbsPdf* pdftmp = simPdf->getPdf(channelCat->getLabel()) ;
-	
-    // Generate observables defined by the pdf associated with this state
-    RooArgSet* obstmp = pdftmp->getObservables(*mc->GetObservables()) ;
-
-    if (_printLevel >= 1)
-    {
-      obstmp->Print();
-      cout << "on type " << channelCat->getLabel() << " " << iFrame << endl;
-    }
-
-    RooDataSet* obsDataUnbinned = new RooDataSet(Form("combAsimovData%d",iFrame),Form("combAsimovData%d",iFrame),RooArgSet(obsAndWeight,*channelCat),WeightVar(*weightVar));
-    RooRealVar* thisObs = ((RooRealVar*)obstmp->first());
-    double expectedEvents = pdftmp->expectedEvents(*obstmp);
-    double thisNorm = 0;
-    for(int jj=0; jj<thisObs->numBins(); ++jj){
-      thisObs->setBin(jj);
-
-      thisNorm=pdftmp->getVal(obstmp)*thisObs->getBinWidth(jj);
-      if (thisNorm*expectedEvents > 0 && thisNorm*expectedEvents < pow(10.0, 18)) obsDataUnbinned->add(*mc->GetObservables(), thisNorm*expectedEvents);
-    }
-    
-    if (_printLevel >= 1)
-    {
-      obsDataUnbinned->Print();
-      cout <<"sum entries "<<obsDataUnbinned->sumEntries()<<endl;
-    }
-    if(obsDataUnbinned->sumEntries()!=obsDataUnbinned->sumEntries()){
-      cout << "sum entries is nan"<<endl;
-      exit(1);
-    }
-
-
-    asimovDataMap[string(channelCat->getLabel())] = obsDataUnbinned;
-
-    if (_printLevel >= 1)
-    {
-      cout << "channel: " << channelCat->getLabel() << ", data: ";
-      obsDataUnbinned->Print();
-      cout << endl;
-    }
-  }
-
-  if (doTest) cout << "test = " << test++ << endl;
-  RooDataSet* asimovData = new RooDataSet(("asimovData"+muStr.str()).c_str(),("asimovData"+muStr.str()).c_str(),RooArgSet(obsAndWeight,*channelCat),Index(*channelCat),Import(asimovDataMap),WeightVar(*weightVar));
-  if (w->data(("asimovData"+muStr.str()).c_str()))
-  {
-    w->import(*asimovData, true);
-  }
-  else
-  {
-    w->import(*asimovData);
-  }
-
-
-
-
-  w->loadSnapshot("initial_params");
-  ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(printLevel);
-
-  if (doTest) cout << "test = " << test++ << endl;
-  return asimovData;
-  
-}
-*/
-
 void unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, RooArgSet& nuis, int& counter)
 {
-  if (counter > 50)
-  {
+  if (counter > 50) {
     cout << "ERROR::Couldn't unfold constraints!" << endl;
     cout << "Initial: " << endl;
     initial.Print("v");
@@ -1353,22 +1092,22 @@ void unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, Roo
     final.Print("v");
     exit(1);
   }
+
   TIterator* itr = initial.createIterator();
   RooAbsPdf* pdf;
-  while ((pdf = (RooAbsPdf*)itr->Next()))
-  {
+  while ((pdf = (RooAbsPdf*)itr->Next())) {
     RooArgSet nuis_tmp = nuis;
     RooArgSet constraint_set(*pdf->getAllConstraints(obs, nuis_tmp, false));
-    //if (constraint_set.getSize() > 1)
-    //{
     string className(pdf->ClassName());
-    if (className != "RooGaussian" && className != "RooLognormal" && className != "RooGamma" && className != "RooPoisson" && className != "RooBifurGauss")
+    if (   className != "RooGaussian" 
+        && className != "RooLognormal" 
+        && className != "RooGamma" 
+        && className != "RooPoisson" 
+        && className != "RooBifurGauss")
     {
       counter++;
       unfoldConstraints(constraint_set, final, obs, nuis, counter);
-    }
-    else
-    {
+    } else {
       final.add(*pdf);
     }
   }
@@ -1377,7 +1116,13 @@ void unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, Roo
 
 
 
-RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, double mu_val, string* mu_str, string* mu_prof_str, double mu_val_profile, bool doFit)
+RooDataSet* makeAsimovData( bool doConditional, 
+                            RooNLLVar* conditioning_nll, 
+                            double mu_val, 
+                            string* mu_str, 
+                            string* mu_prof_str, 
+                            double mu_val_profile, 
+                            bool doFit)
 {
   if (mu_val_profile == -999) mu_val_profile = mu_val;
 
@@ -1391,9 +1136,9 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
   //RooMinuit::SetMaxIterations(10000);
   //RooMinimizer::SetMaxFunctionCalls(10000);
 
-////////////////////
-//make asimov data//
-////////////////////
+  ////////////////////
+  //make asimov data//
+  ////////////////////
   RooAbsPdf* combPdf = mc->GetPdf();
 
   int _printLevel = 0;
@@ -1437,7 +1182,7 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
   RooArgSet mc_globs = *mc->GetGlobalObservables();
   RooArgSet mc_nuis = *mc->GetNuisanceParameters();
 
-//pair the nuisance parameter to the global observable
+  // pair the nuisance parameter to the global observable
   RooArgSet mc_nuis_tmp = mc_nuis;
   RooArgList nui_list("ordered_nuis");
   RooArgList glob_list("ordered_globs");
@@ -1448,22 +1193,19 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
 
   TIterator* cIter = constraint_set.createIterator();
   RooAbsArg* arg;
-  while ((arg = (RooAbsArg*)cIter->Next()))
-  {
+  while ((arg = (RooAbsArg*)cIter->Next())) {
     RooAbsPdf* pdf = (RooAbsPdf*)arg;
     if (!pdf) continue;
-//     cout << "Printing pdf" << endl;
-//     pdf->Print();
-//     cout << "Done" << endl;
+    //cout << "Printing pdf" << endl;
+    //pdf->Print();
+    //cout << "Done" << endl;
     TIterator* nIter = mc_nuis.createIterator();
     RooRealVar* thisNui = NULL;
     RooAbsArg* nui_arg;
-    while ((nui_arg = (RooAbsArg*)nIter->Next()))
-    {
-      if (pdf->dependsOn(*nui_arg))
-      {
-	thisNui = (RooRealVar*)nui_arg;
-	break;
+    while ((nui_arg = (RooAbsArg*)nIter->Next())) {
+      if (pdf->dependsOn(*nui_arg)) {
+        thisNui = (RooRealVar*)nui_arg;
+        break;
       }
     }
     delete nIter;
@@ -1471,40 +1213,33 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
     //RooRealVar* thisNui = (RooRealVar*)pdf->getObservables();
 
 
-//need this incase the observable isn't fundamental. 
-//in this case, see which variable is dependent on the nuisance parameter and use that.
+    //need this incase the observable isn't fundamental. 
+    //in this case, see which variable is dependent on the nuisance parameter and use that.
     RooArgSet* components = pdf->getComponents();
-//     cout << "\nPrinting components" << endl;
-//     components->Print();
-//     cout << "Done" << endl;
+    //cout << "\nPrinting components" << endl;
+    //components->Print();
+    //cout << "Done" << endl;
     components->remove(*pdf);
-    if (components->getSize())
-    {
+    if (components->getSize()) {
       TIterator* itr1 = components->createIterator();
       RooAbsArg* arg1;
-      while ((arg1 = (RooAbsArg*)itr1->Next()))
-      {
-	TIterator* itr2 = components->createIterator();
-	RooAbsArg* arg2;
-	while ((arg2 = (RooAbsArg*)itr2->Next()))
-	{
-	  if (arg1 == arg2) continue;
-	  if (arg2->dependsOn(*arg1))
-	  {
-	    components->remove(*arg1);
-	  }
-	}
-	delete itr2;
+      while ((arg1 = (RooAbsArg*)itr1->Next())) {
+	      TIterator* itr2 = components->createIterator();
+	      RooAbsArg* arg2;
+	      while ((arg2 = (RooAbsArg*)itr2->Next())) {
+	        if (arg1 == arg2) continue;
+	        if (arg2->dependsOn(*arg1)) {
+	          components->remove(*arg1);
+	        }
+	      }
+	      delete itr2;
       }
       delete itr1;
     }
-    if (components->getSize() > 1)
-    {
+    if (components->getSize() > 1) {
       cout << "ERROR::Couldn't isolate proper nuisance parameter" << endl;
       return NULL;
-    }
-    else if (components->getSize() == 1)
-    {
+    } else if (components->getSize() == 1) {
       thisNui = (RooRealVar*)components->first();
     }
 
@@ -1513,50 +1248,45 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
     TIterator* gIter = mc_globs.createIterator();
     RooRealVar* thisGlob = NULL;
     RooAbsArg* glob_arg;
-    while ((glob_arg = (RooAbsArg*)gIter->Next()))
-    {
-      if (pdf->dependsOn(*glob_arg))
-      {
-	thisGlob = (RooRealVar*)glob_arg;
-	break;
+    while ((glob_arg = (RooAbsArg*)gIter->Next())) {
+      if (pdf->dependsOn(*glob_arg)) {
+        thisGlob = (RooRealVar*)glob_arg;
+        break;
       }
     }
     delete gIter;
 
-    if (!thisNui || !thisGlob)
-    {
+    if (!thisNui || !thisGlob) {
       cout << "WARNING::Couldn't find nui or glob for constraint: " << pdf->GetName() << endl;
       //return;
       continue;
     }
 
-    if (_printLevel >= 1) cout << "Pairing nui: " << thisNui->GetName() << ", with glob: " << thisGlob->GetName() << ", from constraint: " << pdf->GetName() << endl;
+    if (_printLevel >= 1) {
+      cout << "Pairing nui: " << thisNui->GetName() << ", with glob: " 
+          << thisGlob->GetName() << ", from constraint: " << pdf->GetName() << endl;
+    }
 
     nui_list.add(*thisNui);
     glob_list.add(*thisGlob);
 
-//     cout << "\nPrinting Nui/glob" << endl;
-//     thisNui->Print();
-//     cout << "Done nui" << endl;
-//     thisGlob->Print();
-//     cout << "Done glob" << endl;
+    //cout << "\nPrinting Nui/glob" << endl;
+    //thisNui->Print();
+    //cout << "Done nui" << endl;
+    //thisGlob->Print();
+    //cout << "Done glob" << endl;
   }
   delete cIter;
 
-
-
-
-//save the snapshots of nominal parameters, but only if they're not already saved
+  //save the snapshots of nominal parameters, but only if they're not already saved
   w->saveSnapshot("tmpGlobs",*mc->GetGlobalObservables());
   w->saveSnapshot("tmpNuis",*mc->GetNuisanceParameters());
-  if (!w->loadSnapshot("nominalGlobs"))
-  {
+  if (!w->loadSnapshot("nominalGlobs")) {
     cout << "nominalGlobs doesn't exist. Saving snapshot." << endl;
     w->saveSnapshot("nominalGlobs",*mc->GetGlobalObservables());
   }
   else w->loadSnapshot("tmpGlobs");
-  if (!w->loadSnapshot("nominalNuis"))
-  {
+  if (!w->loadSnapshot("nominalNuis")) {
     cout << "nominalNuis doesn't exist. Saving snapshot." << endl;
     w->saveSnapshot("nominalNuis",*mc->GetNuisanceParameters());
   }
@@ -1567,8 +1297,7 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
   mu->setVal(mu_val_profile);
   mu->setConstant(1);
   //int status = 0;
-  if (doConditional && doFit)
-  {
+  if (doConditional && doFit) {
     mc->GetParametersOfInterest()->Print("v");
     mc->GetNuisanceParameters()->Print("v");
     mc->GetGlobalObservables()->Print("v");
@@ -1596,26 +1325,26 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
 
 
 
-//loop over the nui/glob list, grab the corresponding variable from the tmp ws, and set the glob to the value of the nui
+  // loop over the nui/glob list, grab the corresponding variable from 
+  // the tmp ws, and set the glob to the value of the nui
   int nrNuis = nui_list.getSize();
-  if (nrNuis != glob_list.getSize())
-  {
+  if (nrNuis != glob_list.getSize()) {
     cout << "ERROR::nui_list.getSize() != glob_list.getSize()!" << endl;
     return NULL;
   }
 
-  for (int i=0;i<nrNuis;i++)
-  {
+  for (int i=0; i<nrNuis; i++) {
     RooRealVar* nui = (RooRealVar*)nui_list.at(i);
     RooRealVar* glob = (RooRealVar*)glob_list.at(i);
 
     //cout << "nui: " << nui << ", glob: " << glob << endl;
-    //cout << "Setting glob: " << glob->GetName() << ", which had previous val: " << glob->getVal() << ", to conditional val: " << nui->getVal() << endl;
+    //cout << "Setting glob: " << glob->GetName() << ", which had previous val: " 
+    //     << glob->getVal() << ", to conditional val: " << nui->getVal() << endl;
 
     glob->setVal(nui->getVal());
   }
 
-//save the snapshots of conditional parameters
+  //save the snapshots of conditional parameters
   // cout << "Saving conditional snapshots" << endl;
   // cout << "Glob snapshot name = " << "conditionalGlobs"+muStrProf.str() << endl;
   // cout << "Nuis snapshot name = " << "conditionalNuis"+muStrProf.str() << endl;
@@ -1629,7 +1358,7 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
   }
 
   if (_printLevel >= 1) cout << "Making asimov" << endl;
-//make the asimov data (snipped from Kyle)
+  //make the asimov data (snipped from Kyle)
   mu->setVal(mu_val);
 
   int iFrame=0;
@@ -1654,11 +1383,8 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
 
 
   //////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////
   // MAKE ASIMOV DATA FOR OBSERVABLES
+  //////////////////////////////////////////////////////
 
   // dummy var can just have one bin since it's a dummy
   //if(w->var("ATLAS_dummyX"))  w->var("ATLAS_dummyX")->setBins(1);
@@ -1668,8 +1394,7 @@ RooDataSet* makeAsimovData(bool doConditional, RooNLLVar* conditioning_nll, doub
   RooSimultaneous* simPdf = dynamic_cast<RooSimultaneous*>(mc->GetPdf());
 
   RooDataSet* asimovData;
-  if (!simPdf)
-  {
+  if (!simPdf) {
     // Get pdf associated with state from simpdf
     RooAbsPdf* pdftmp = mc->GetPdf();//simPdf->getPdf(channelCat->getLabel()) ;
 	
