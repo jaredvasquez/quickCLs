@@ -1,5 +1,5 @@
-# quickFit
-Tool for quickly fitting a data in a RooWorkspace
+# quickCLs
+Lightweight tool for quickly extracting asymptotic CLs limits 
 
 ## Installation
 ```
@@ -10,25 +10,25 @@ make
 ## Fitting your workspace
 Simple fit with MIGRAD
 ```
-quickFit -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5
+quickCLs -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5
 ```
 
 Fitting `mu_ggH` but fixing `mu_VBF=2`
 ```
-quickFit -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=2
+quickCLs -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=2
 ```
 
 Fixing all systematics with `ATLAS_*` prefix
 ```
-quickFit -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5 -n ATLAS_*
+quickCLs -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5 -n ATLAS_*
 ```
 
 Including HESSE + MINOS fits
 ```
-quickFit -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5 --hesse 1 --minos 1
+quickCLs -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5 --hesse 1 --minos 1
 ```
 
 Outputting fit results to `output.root`
 ```
-quickFit -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5 -o output.root
+quickCLs -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5 -o output.root
 ```

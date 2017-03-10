@@ -156,7 +156,8 @@ int main( int argc, char** argv )
   TFile *tf = new TFile( (TString) _inputFile );
   RooWorkspace *ws = (RooWorkspace*)tf->Get( (TString) _wsName );
   RooStats::ModelConfig *mc = (RooStats::ModelConfig*)ws->obj( (TString) _mcName );
-  RooAbsData *data = ws->data( (TString) _dataName );
+  RooAbsData *data   = ws->data( (TString) _dataName );
+  RooAbsData *asimov = ws->data( (TString) _asimovName );
 
   // Prepare model as expected
   utils::setAllConstant( mc->GetGlobalObservables(), true );
@@ -225,13 +226,16 @@ int main( int argc, char** argv )
   }
 
   // Fitting 
-  TStopwatch timer;
-  cout << endl << "Starting fit..." << endl;
-  int status = 0; //fitter->profileToData( mc, data ); // Perform fit
-  timer.Stop();
-  double t_cpu_ = timer.CpuTime()/60.;
-  double t_real_ = timer.RealTime()/60.;
-  printf("\nAll fits done in %.2f min (cpu), %.2f min (real)\n", t_cpu_, t_real_);
+  //TStopwatch timer;
+  //cout << endl << "Starting fit..." << endl;
+  //int status = 0; //fitter->profileToData( mc, data ); // Perform fit
+
+  //limTool->runAsymptoticsCLs(infile.Data(),wname.Data(),mname.Data(),dname.Data(),aname.Data(),pname.Data(),mass,CL,option);
+
+  //timer.Stop();
+  //double t_cpu_ = timer.CpuTime()/60.;
+  //double t_real_ = timer.RealTime()/60.;
+  //printf("\nAll fits done in %.2f min (cpu), %.2f min (real)\n", t_cpu_, t_real_);
 
   //string STATMSG = (status) ? "\033[91m STATUS FAILED \033[0m" : "\033[92m STATUS OK \033[0m" ;
 

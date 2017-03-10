@@ -39,8 +39,9 @@ asymCLsTool::asymCLsTool() {
 }
 
 
-void asymCLsTool::runAsymptoticsCLs(const char* infile,
+void asymCLsTool::runAsymptoticsCLs(
 // ----------------------------------------------------------------------------------------------------- 
+           const char* infile,
 		       const char* workspaceName,
 		       const char* modelConfigName,
 		       const char* dataName,
@@ -85,167 +86,11 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
     w->var("mu_ggf")->setRange(0,100);
   }
   
-  // new ratios
-  // -------------------------------------------------------------------
-  if (option.Contains("muRatio_VBF")) firstPOI=w->var("muRatio_VBF");
-  if (option.Contains("muRatio_ttH")) firstPOI=w->var("muRatio_ttH");
-  if (option.Contains("muRatio_VH"))  firstPOI=w->var("muRatio_VH");
-  if (option.Contains("muRatio_VBF")||option.Contains("muRatio_ttH")||option.Contains("muRatio_VH")) {
-    w->var("mu_ggH")     ->setRange(-5,+5);
-    w->var("muRatio_VBF")->setRange(0,100);
-    w->var("muRatio_ttH")->setRange(0,100);
-    w->var("muRatio_VH") ->setRange(0,100);
-    // set const
-    w->var("muRatio_bbH")->setConstant(1);
-    w->var("muRatio_WH") ->setConstant(1);
-    w->var("muRatio_ZH") ->setConstant(1);
-    w->var("muRatio_tH") ->setConstant(1);
-    w->var("mu")         ->setConstant(1);
-  }
-  
   cout<<"POI name: "<<firstPOI->GetName()<<endl;
   data = (RooDataSet*)w->data(dataName);
   if (!data) {
     cout << "ERROR::Dataset: " << dataName << " doesn't exist!" << endl;
     return;
-  }
-
-  if(option.Contains("unconditional")){
-    cout<<"REGTEST: unconditional expected limit"<<endl;
-    conditionalExpected=false;
-  }
-  if(option.Contains("changemass")){
-    w->var("m_H")->setVal(Hmass);
-    w->var("m_H")->setConstant(true);
-  }
-
-  if(option.Contains("changect")){
-    w->var("CT")->setVal(CT);
-    w->var("CT")->setConstant(true);
-    cout<<"REGTEST: Fixing kT to "<<w->var("CT")->getVal()<<endl;
-  }
-
-  if(option.Contains("nosys")){
-    //if(mc->GetNuisanceParameters()) utils::setAllConstant((RooArgSet*)mc->GetNuisanceParameters(),true);
-    RooArgSet* nuisAll=new RooArgSet();
-    nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("ATLAS*"));
-    nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("QCDscale*"));
-    nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("pdf*"));
-    nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("HF*"));
-    nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("MOD*"));
-    nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("BR*"));
-    utils::setAllConstant(nuisAll,true);
-    nuisAll->Print("v");
-  }
-
-  if(option.Contains("nojet")){
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JES*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JVF*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JER*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_BTag*"));
-    utils::setAllConstant(set_temp,true);
-    set_temp->Print("v");
-  }
-
-  if(option.Contains("nothe")){
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("BR*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("HF*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("QCDscale*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("pdf*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("MOD*"));
-    utils::setAllConstant(set_temp,true);
-    set_temp->Print("v");
-  }
-
-  if(option.Contains("nobkg")){
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_Hgg_BIAS*"));
-    utils::setAllConstant(set_temp,true);
-    set_temp->Print("v");
-  }
-
-  if(option.Contains("nomss")){
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS*_MSS*"));
-    utils::setAllConstant(set_temp,true);
-    set_temp->Print("v");
-  }
-
-  if(option.Contains("nolep")){
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_MU*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_EL*"));
-    utils::setAllConstant(set_temp,true);
-    set_temp->Print("v");
-  }
-
-  if(option.Contains("nores")){
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_EM_mRes*"));
-    utils::setAllConstant(set_temp,true);
-    set_temp->Print("v");
-  }
-
-  if(option.Contains("nonorm")){
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_PH*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_LUMI*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_Hgg_Trigger*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_stat*"));
-    utils::setAllConstant(set_temp,true);
-  }
-
-  if(option.Contains("nomigr")){
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JES*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JVF*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JER*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_MU*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_EL*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_BTag*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_UEPS*"));
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_MET*"));
-    utils::setAllConstant(set_temp,true);
-    set_temp->Print("v");
-  }
-  
-  if(option.Contains("fixbkgnorm")){
-    RooArgSet *nuisanceParameters=(RooArgSet*)mc->GetNuisanceParameters();
-    RooArgSet *norm=new RooArgSet();
-    norm->add(*nuisanceParameters->selectByName("atlas_nbkg_*"));
-    utils::setAllConstant(norm,true);
-  }
-
-  if(option.Contains("fixbkgshape")){
-    RooArgSet *nuisanceParameters=(RooArgSet*)mc->GetNuisanceParameters();
-    RooArgSet *shape=(RooArgSet*)nuisanceParameters->clone("shape");
-    RooArgSet *norm=new RooArgSet();
-    RooArgSet *nuisAll=(RooArgSet*)mc->GetNuisanceParameters();
-    norm->add(*nuisanceParameters->selectByName("atlas_nbkg_*"));
-    shape->remove(*norm);
-    shape->remove(*nuisAll);
-    utils::setAllConstant(shape,true);
-  }
-
-  if(option.Contains("fixmass")) {
-    cout<<"REGTEST: Fixing mass to "<<w->var("m_H")->getVal()<<" GeV"<<endl;
-    w->var("m_H")->setConstant(true);
-  }
-  if(option.Contains("mutth")) {
-    cout<<"REGTEST: Set limit on mu_ttH. fix mu to 1"<<endl;
-    w->var("mu")->setVal(1);
-    w->var("mu")->setConstant(true);
-  }    
-
-  if(option.Contains("flatline")) {
-    cout<<"REGTEST: Set the slope values to 0"<<endl;
-    RooArgSet *set_temp=new RooArgSet();
-    set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("slope_*"));
-    utils::setAllValue(set_temp,0);
-    utils::setAllConstant(set_temp,true);
-    set_temp->Print("v");
   }
 
   mc->GetParametersOfInterest()->Print("v");
@@ -262,7 +107,6 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
   RooDataSet* asimovData_0 = (RooDataSet*)w->data(asimovDataName);
   if (!asimovData_0) {
     asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
-    
     //asimovData_0 = makeAsimovData2((conditionalExpected ? obs_nll : (RooNLLVar*)NULL), 0., 0.);
   }
 
@@ -278,9 +122,7 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
   w->loadSnapshot("conditionalGlobs_0");
   map_nll_muhat[asimov_0_nll] = asimov_0_nll->getVal();
 
-  
   target_CLs=1-CL;
-
   
   double med_limit = doExp ? getLimit(asimov_0_nll, 1.0) : 1.0;
   int med_status=global_status;
@@ -331,7 +173,6 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
       RooDataSet* asimovData_N = makeAsimovData(1, asimov_0_nll, NtimesSigma, &muStr, &muStrPr, pr_val, 0);
       //RooDataSet* asimovData_N = makeAsimovData2(asimov_0_nll, NtimesSigma, pr_val, &muStr, &muStrPr);
 
-
       RooNLLVar* asimov_N_nll = createNLL(asimovData_N);//(RooNLLVar*)pdf->createNLL(*asimovData_N);
       map_data_nll[asimovData_N] = asimov_N_nll;
       map_snapshots[asimov_N_nll] = "conditionalGlobs"+muStrPr;
@@ -380,8 +221,7 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
     cout << "--------------------------------" << endl;
     cout << "Unresolved fit failures detected" << endl;
     cout << "Asimov0:  " << asimov0_status << endl;
-    for (map<int, int>::iterator itr=N_status.begin();itr!=N_status.end();itr++)
-    {
+    for (map<int, int>::iterator itr=N_status.begin();itr!=N_status.end();itr++) {
       cout << "+" << itr->first << "sigma:  " << itr->first << endl;
     }
     cout << "Median:   " << med_status << endl;
