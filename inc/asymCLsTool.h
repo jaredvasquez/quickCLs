@@ -24,6 +24,7 @@ class asymCLsTool : public TObject {
 
     //other configuration
     string defaultMinimizer;
+    int maxRetries;
     int defaultPrintLevel;
     int defaultStrategy;
     bool killBelowFatal;
@@ -32,11 +33,10 @@ class asymCLsTool : public TObject {
     bool doTilde;
     bool doExp;
     bool doObs;
-    double precision;
     bool verbose;
     bool usePredictiveFit;
     bool extrapolateSigma;
-    int maxRetries;
+    double precision;
 
     TString Option="";
 
@@ -46,12 +46,14 @@ class asymCLsTool : public TObject {
     map<RooDataSet*, RooNLLVar*> map_data_nll;
     map<RooNLLVar*, string> map_snapshots;
     map<RooNLLVar*, map<double, double> > map_nll_mu_sigma;
+
     RooWorkspace* w = NULL;
     ModelConfig* mc = NULL;
     RooDataSet* data = NULL;
     RooRealVar* firstPOI = NULL;
     RooNLLVar* asimov_0_nll = NULL;
     RooNLLVar* obs_nll = NULL;
+
     int nrMinimize=0;
     int direction=1;
     int global_status=0;
@@ -60,24 +62,29 @@ class asymCLsTool : public TObject {
     double Hmass=-1;
     double CT=-998;
 
+    RooNLLVar* createNLL(RooDataSet* _data);
+    int minimize(RooNLLVar* nll);
+    int minimize(RooAbsReal* nll);
+
     double getLimit(RooNLLVar* nll, double initial_guess = 0);
     double getSigma(RooNLLVar* nll, double mu, double muhat, double& qmu);
     double getQmu(RooNLLVar* nll, double mu);
+
+    void setMu(double mu);
     void saveSnapshot(RooNLLVar* nll, double mu);
     void loadSnapshot(RooNLLVar* nll, double mu);
     void doPredictiveFit(RooNLLVar* nll, double mu1, double m2, double mu);
-    RooNLLVar* createNLL(RooDataSet* _data);
+
     double getNLL(RooNLLVar* nll);
     double findCrossing(double sigma_obs, double sigma, double muhat);
-    void setMu(double mu);
+
     double getQmu95_brute(double sigma, double mu);
     double getQmu95(double sigma, double mu);
     double calcCLs(double qmu_tilde, double sigma, double mu);
     double calcPmu(double qmu_tilde, double sigma, double mu);
     double calcPb(double qmu_tilde, double sigma, double mu);
     double calcDerCLs(double qmu, double sigma, double mu);
-    int minimize(RooNLLVar* nll);
-    int minimize(RooAbsReal* nll);
+
     //RooDataSet* makeAsimovData2(RooDataSet* conditioningData, double mu_true, 
     //              double mu_prof = -999, string* mu_str = NULL, string* mu_prof_str = NULL);
     //RooDataSet* makeAsimovData2(RooNLLVar* conditioningNLL, double mu_true, 
@@ -90,18 +97,27 @@ class asymCLsTool : public TObject {
 
   public:
     asymCLsTool();
-    void useHESSE( bool flag ) { _useHESSE = flag; };
-    void useMINOS( bool flag ) { _useMINOS = flag; };
-    void useSIMPLEX( bool flag ) { _useSIMPLEX = flag; };
-    void setNLLOffset( bool flag ) { _nllOffset = flag; };
-    void saveWorkspace( bool flag ) { _saveWS = flag; };
-    void setTolerance( float val ) { _minTolerance = val; };
-    void setNCPU( int val ) { _nCPU = val; };
-    void setStrategy( int val ) { _minStrat = val; };
-    void setOptConst( int val ) { _optConst = val; };
-    void setPrintLevel( int val ) { _printLevel = val; };
-    void setOutputFile( TString str ) { _outputFile = str; };
-    void setMinAlgo( TString str ) { _minAlgo = str; };
+    
+    // set limit options
+    void setBetterBands( bool flag ) { betterBands = flag; };
+    void setProfileNegAtZero( bool flag ) { profileNegativeAtZero = flag; };
+    void setBetterNegativeBands( bool flag ) { betterNegativeBands = flag; };
+    
+    void setMinAlgo( string str ) { defaultMinimizer = str; };
+    void setPrecision( double val ) { precision = val; };
+
+    void setStrategy( int val ) { defaultStrategy = val; };
+    void setMaxRetries( int val ) { maxRetries = val; };
+    void setPrintLevel( int val ) { defaultPrintLevel = val; };
+
+    void setDoTilde( bool flag ) { doTilde = flag; };
+    void setDoBlind( bool flag ) { doBlind = flag; }
+    void setVerbose( bool flag ) { verbose = flag; };
+    void setDoExpected( bool flag ) { doExp = flag; };
+    void setDoObserved( bool flag ) { doObs = flag && !doBlind; };
+    void setCondExpected( bool flag ) { conditionalExpected = flag && !doBlind; };
+    void setPredictiveFit( bool flag ) { usePredictiveFit = flag; };
+    void setKillBelowFatal( bool flag) { killBelowFatal = flag; };
     
     //main
     void runAsymptoticsCLs(const char* infile,

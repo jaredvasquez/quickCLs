@@ -34,7 +34,6 @@ asymCLsTool::asymCLsTool() {
   precision             = 0.005;         // % precision in mu that defines iterative cutoff
   verbose               = 0;             // 1 = very spammy
   usePredictiveFit      = 0;             // experimental, extrapolate best fit nuisance parameters based on previous fit results
-  extrapolateSigma      = 0;             // experimantal, extrapolate sigma based on previous fits
   maxRetries            = 3;             // number of minimize(fcn) retries before giving up
 
 }
