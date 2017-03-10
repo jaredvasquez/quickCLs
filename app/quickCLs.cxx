@@ -6,7 +6,7 @@
 
 #include "inc/asymCLsTool.h"
 #include "inc/auxUtils.h"
-#include "inc/fitTool.h"
+//#include "inc/fitTool.h"
 
 std::string _outputFile = "";
 std::string _inputFile = "";
@@ -110,7 +110,7 @@ int main( int argc, char** argv )
   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR);
   
   // Set fit options
-  fitTool *fitter = new fitTool();
+  //fitTool *fitter = new fitTool();
   asymCLsTool *limTool = new asymCLsTool();
   //fitter->setMinAlgo( (TString) _minAlgo );
   //fitter->useHESSE( _useHESSE );
