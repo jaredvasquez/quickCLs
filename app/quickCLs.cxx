@@ -10,8 +10,10 @@
 
 std::string _outputFile = "";
 std::string _inputFile = "";
+
 std::string _minAlgo  = "Minuit2";
 std::string _dataName = "combData";
+std::string _asimovName = "AsimovSB";
 std::string _wsName = "combWS";
 std::string _mcName = "ModelConfig";
 
@@ -24,11 +26,30 @@ bool _useMINOS = false;
 bool _useSIMPLEX = false;
 bool _nllOffset = true;
 float _minTolerance = 0.001;
-int _minStrategy = 1;
 int _optConst = 2;
-int _printLevel = 2;
 int _nCPU = 1;
+    
+//band configuration
+bool _betterBands = 1;
+bool _betterNegativeBands = 0;
+bool _profileNegativeAtZero = 0;
 
+//other configuration
+int _maxRetries = 3;
+int _printLevel = 0;
+int _minStrategy = 1;
+
+bool _doExp = 1;
+bool _verbose = 0;
+bool _doBlind = 1;
+bool _doTilde = 1;
+bool _killBelowFatal = 1;
+bool _usePredFit = 0;
+bool _doObs = 1 && !_doBlind;
+bool _conditionalExpected = 1 && !_doBlind;
+
+double _precision = 0.005;
+  
 string OKGREEN = "\033[92m";
 string FAIL = "\033[91m";
 string ENDC = "\033[0m";
@@ -39,38 +60,70 @@ int main( int argc, char** argv )
   po::options_description desc( "quickFit options" );
   desc.add_options()
     // IO Options 
-    ( "inputFile,f",   po::value<std::string>(&_inputFile),  "Specify the input TFile (REQUIRED)" )
-    ( "outputFile,o",  po::value<std::string>(&_outputFile), "Save fit results to output TFile" )
-    ( "dataName,d",    po::value<std::string>(&_dataName)->default_value(_dataName),   
-                         "Name of the dataset" )
-    ( "wsName,w",      po::value<std::string>(&_wsName)->default_value(_wsName),
-                         "Name of the workspace" )
-    ( "mcName,m",      po::value<std::string>(&_mcName)->default_value(_mcName), 
-                         "Name of the model config" )
+    ( "inputFile,f",    po::value<std::string>(&_inputFile),  "Specify the input TFile (REQUIRED)" )
+    ( "outputFile,o",   po::value<std::string>(&_outputFile), "Save fit results to output TFile" )
+    ( "dataName,d",     po::value<std::string>(&_dataName)->default_value(_dataName),   
+                          "Name of the observed dataset" )
+    ( "asimovName,a",     po::value<std::string>(&_asimovName)->default_value(_asimovName),   
+                          "Name of the Asimov dataset" )
+    ( "wsName,w",       po::value<std::string>(&_wsName)->default_value(_wsName),
+                          "Name of the workspace" )
+    ( "mcName,m",       po::value<std::string>(&_mcName)->default_value(_mcName), 
+                          "Name of the model config" )
     // Model Options
-    ( "poi,p",         po::value<std::string>(&_poiStr),     "Specify POIs to be used in fit" )
-    ( "fixNP,n",       po::value<std::string>(&_fixNPStr),   "Specify NPs to be used in fit" )
+    ( "poi,p",          po::value<std::string>(&_poiStr),     "Specify POIs to be used in fit" )
+    ( "fixNP,n",        po::value<std::string>(&_fixNPStr),   "Specify NPs to be used in fit" )
+
     // Fit Options
-    ( "simplex",       po::value<bool>(&_useSIMPLEX)->default_value(_useSIMPLEX),
-                         "Estimate central values with SIMPLEX" )
-    ( "hesse",         po::value<bool>(&_useHESSE)->default_value(_useHESSE),
-                         "Estimate errors with HESSE after fit" )
-    ( "minos",         po::value<bool>(&_useMINOS)->default_value(_useMINOS),
-                         "Get asymmetric errors with MINOS fit" )
-    ( "nllOffset",     po::value<bool>(&_nllOffset)->default_value(_nllOffset),         
-                         "Set NLL offset" )
-    ( "numCPU",      po::value<int>(&_nCPU)->default_value(_nCPU),
-                         "Set number of CPUs for fit" )
-    ( "minStrat",      po::value<int>(&_minStrategy)->default_value(_minStrategy),
-                         "Set minimizer strategy" )
-    ( "optConst",      po::value<int>(&_optConst)->default_value(_optConst),
-                         "Set optimize constant" )
-    ( "printLevel",    po::value<int>(&_printLevel)->default_value(_printLevel),
-                         "Set minimizer print level" )
-    ( "minTolerance",  po::value<float>(&_minTolerance)->default_value(_minTolerance),
-                         "Set minimizer tolerance" )
-    ( "saveWS",        po::value<bool>(&_saveWS)->default_value(_saveWS),
-                         "Save postfit workspace to the output file" )
+    ( "simplex",        po::value<bool>(&_useSIMPLEX)->default_value(_useSIMPLEX),
+                          "Estimate central values with SIMPLEX" )
+    ( "hesse",          po::value<bool>(&_useHESSE)->default_value(_useHESSE),
+                          "Estimate errors with HESSE after fit" )
+    ( "minos",          po::value<bool>(&_useMINOS)->default_value(_useMINOS),
+                          "Get asymmetric errors with MINOS fit" )
+    ( "nllOffset",      po::value<bool>(&_nllOffset)->default_value(_nllOffset),         
+                          "Set NLL offset" )
+    ( "numCPU",         po::value<int>(&_nCPU)->default_value(_nCPU),
+                          "Set number of CPUs for fit" )
+    ( "optConst",       po::value<int>(&_optConst)->default_value(_optConst),
+                          "Set optimize constant" )
+    ( "minTolerance",   po::value<float>(&_minTolerance)->default_value(_minTolerance),
+                          "Set minimizer tolerance" )
+    ( "saveWS",         po::value<bool>(&_saveWS)->default_value(_saveWS),
+                          "Save postfit workspace to the output file" )
+    // Band Configuration
+    ( "betterBands",    po::value<bool>(&_betterBands)->default_value(_betterBands),
+                          "Improve bands by using a more appropriate asimov dataset for those points" )
+    ( "betterNegBands", po::value<bool>(&_betterNegativeBands)->default_value(_betterNegativeBands),
+                          "Also improve negative bands (not recommended)" )
+    ( "setNegAtZero",   po::value<bool>(&_profileNegativeAtZero)->default_value(_profileNegativeAtZero),
+                          "Profile Asimov for negative bands at zero (not recommended)" )
+    // Minimizer Options
+    ( "minStrat",       po::value<int>(&_minStrategy)->default_value(_minStrategy),
+                          "Set minimizer strategy" )
+    ( "printLevel",     po::value<int>(&_printLevel)->default_value(_printLevel),
+                          "Set minimizer print level" )
+    ( "maxRetries",     po::value<int>(&_maxRetries)->default_value(_maxRetries),
+                          "Number of minimize (fcn) retries before giving up" )
+    ( "precision",      po::value<double>(&_precision)->default_value(_precision),
+                          "Set \% precision in mu that defines iterative cutoff" )
+    ( "verbose",        po::value<bool>(&_verbose)->default_value(_verbose),
+                          "Set verbose (very spammy)" )
+    // Limit Options
+    ( "doExp",          po::value<bool>(&_doExp)->default_value(_doExp),
+                          "Compute expected limit" )
+    ( "doObs",          po::value<bool>(&_doObs)->default_value(_doObs),
+                          "Compute observed limit" )
+    ( "doBlind",        po::value<bool>(&_doBlind)->default_value(_doBlind),
+                          "Blind analysis from observed limits" )
+    ( "doTilde",        po::value<bool>(&_doTilde)->default_value(_doTilde),
+                          "Bound mu at zero if true and do the \\tilde{q}_{mu} asymptotics" )
+    ( "killBelowFatal", po::value<bool>(&_killBelowFatal)->default_value(_killBelowFatal),
+                          "Bound mu at zero if true and do the \\tilde{q}_{mu} asymptotics" )
+    ( "usePredFit",     po::value<bool>(&_usePredFit)->default_value(_usePredFit),
+                          "(Experimental) extrapolate best fit nuisance parameters based on previous fit results" )
+    ( "condExp",        po::value<bool>(&_conditionalExpected)->default_value(_conditionalExpected),
+                          "Profiling mode for Asimov data: 0 = conditional MLEs, 1 = nominal MLEs" )
     // Other
     ( "help,h",  "Print help message")
     ;

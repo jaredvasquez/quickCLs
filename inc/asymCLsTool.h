@@ -12,11 +12,7 @@ using namespace RooStats;
 
 class asymCLsTool : public TObject {
   private:
-    TString _minAlgo, _outputFile;
-    float _minTolerance;
-    bool _nllOffset, _useHESSE, _useMINOS, _useSIMPLEX, _saveWS;
-    int _minStrat, _optConst, _printLevel, _nCPU; 
-
+    
     //band configuration
     bool betterBands;
     bool betterNegativeBands;
@@ -60,7 +56,7 @@ class asymCLsTool : public TObject {
     double target_CLs=0.05;
 
     double Hmass=-1;
-    double CT=-998;
+    double CT=-999;
 
     RooNLLVar* createNLL(RooDataSet* _data);
     int minimize(RooNLLVar* nll);
