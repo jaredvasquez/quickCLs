@@ -4,9 +4,9 @@
 
 #include <boost/program_options.hpp>
 
-#include "inc/fitTool.h"
+#include "inc/asymCLsTool.h"
 #include "inc/auxUtils.h"
-
+#include "inc/fitTool.h"
 
 std::string _outputFile = "";
 std::string _inputFile = "";
@@ -111,18 +111,19 @@ int main( int argc, char** argv )
   
   // Set fit options
   fitTool *fitter = new fitTool();
-  fitter->setMinAlgo( (TString) _minAlgo );
-  fitter->useHESSE( _useHESSE );
-  fitter->useMINOS( _useMINOS );
-  fitter->useSIMPLEX( _useSIMPLEX );
-  fitter->setNLLOffset( _nllOffset );
-  fitter->setTolerance( _minTolerance );
-  fitter->setStrategy( _minStrategy );
-  fitter->setOptConst( _optConst );
-  fitter->setPrintLevel( _printLevel );
-  fitter->setNCPU( _nCPU );
-  fitter->setOutputFile( (TString) _outputFile );
-  fitter->saveWorkspace( _saveWS );
+  asymCLsTool *limTool = new asymCLsTool();
+  //fitter->setMinAlgo( (TString) _minAlgo );
+  //fitter->useHESSE( _useHESSE );
+  //fitter->useMINOS( _useMINOS );
+  //fitter->useSIMPLEX( _useSIMPLEX );
+  //fitter->setNLLOffset( _nllOffset );
+  //fitter->setTolerance( _minTolerance );
+  //fitter->setStrategy( _minStrategy );
+  //fitter->setOptConst( _optConst );
+  //fitter->setPrintLevel( _printLevel );
+  //fitter->setNCPU( _nCPU );
+  //fitter->setOutputFile( (TString) _outputFile );
+  //fitter->saveWorkspace( _saveWS );
 
   // Get workspace, model, and data from file
   TFile *tf = new TFile( (TString) _inputFile );
@@ -137,7 +138,7 @@ int main( int argc, char** argv )
 
   // Sanity checks on model 
   cout << "Performing sanity checks on model..." << endl;
-  bool validModel = fitter->checkModel( *mc, true );
+  bool validModel = limTool->checkModel( *mc, true );
   cout << "Sanity checks on the model: " << (validModel ? "OK" : "FAIL") << endl;
 
   // Fix nuisance narameters
@@ -199,7 +200,7 @@ int main( int argc, char** argv )
   // Fitting 
   TStopwatch timer;
   cout << endl << "Starting fit..." << endl;
-  int status = fitter->profileToData( mc, data ); // Perform fit
+  int status = 0; //fitter->profileToData( mc, data ); // Perform fit
   timer.Stop();
   double t_cpu_ = timer.CpuTime()/60.;
   double t_real_ = timer.RealTime()/60.;

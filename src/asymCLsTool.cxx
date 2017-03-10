@@ -1,104 +1,47 @@
 /*
-Author: Aaron Armbruster
-Date:   2012-05-25
-Email:  armbrusa@umich.edu
-Description: Script to run asymptotic CLs.
-   --> Modified by Jared Vasquez
-
---------
-00-01-00
--First version with updated bands
-
---------
-00-01-01
--Fixed problem in asimov data creation that affected +1,2sigma bands
-
---------
-00-01-02
--(Re)added support for non-sim pdfs (still need to be extended)
--Fixed default doFit arg of makeAsimovData
--Added better output for unresolved fit failures
--Improved retry loop for fit failures
-
-
-/////////////////////
-//////PREAMBLE///////
-/////////////////////
-
-The script uses an iterative process to find the crossing of qmu with the qmu95(mu/sigma) curve, 
-where qmu95(mu/sigma) is found assuming asymptotic formula for the distribution of the 
-test statistic f(qmu|mu') (arxiv 1007.1727) and of the test statistic qmu (or tilde)
-
-The sequence is
-
-mu_i+1 = mu_i - gamma_i*(mu_i - mu'_i)
-
-where gamma_i is a dynamic damping factor used for convergence (nominal gamma_i = 1), and mu'_i is 
-determined by extrapolating the test statistic to the qmu95 curve assuming qmu is parabolic:
-
-qmu'_i = (mu'_i - muhat)^2 / sigma_i^2 = qmu95(mu'_i / sigma_i)
-
-where sigma_i is determined by computing qmu_i (not '):
-
-sigma_i = (mu_i - muhat) / sqrt(qmu_i)
-
-At the crossing qmu_N = qmu95 the assumption that qmu is a parabola goes away, 
-so we're not ultimately dependent on this assumption beyond its use in the asymptotic formula.
-
-The sequence ends when the relative correction factor gamma*(mu_i - mu'_i) / mu_i is less than some
-specified precision (0.005 by default)
-
-
-
-
-///////////////////////////
-//////AFTER RUNNING////////
-///////////////////////////
-
-
-The results will be printed as well as stored in a root file in the folder 'root/<folder>', where <folder>
-is specified by you (default 'test')
-
-The root file has a 7-bin TH1D named 'limit', where each bin is filled with the upper limit values in this order:
-
-1: Observed
-2: Median
-3: +2 sigma
-4: +1 sigma
-5: -1 sigma
-6: -2 sigma
-7: mu=0 fit status (only meaningful if asimov data is generated within the macro)
-
-It will also store the result of the old bands procedure in a TH1D named 'limit_old'. 
-
-
-
-
-//////////////////////////
-
-
-This version is functionally fully consistent with the previous tag.
-
-NOTE: The script runs significantly faster when compiled
+ Built into a CLs tool by Jared Vasquez (jared.vasquez@yale.edu) - March 2017
+ Based on asymptotic CLs script written by Aaron Armbruster (armbrusa@umich.edu) - May 2012.
 */
-
-
 
 
 #include "CommonHead.h"
 #include "RooFitHead.h"
 #include "RooStatsHead.h"
-#include "statistics.hh"
+#include "asymCLsTool.h"
 
 using namespace std;
 using namespace RooFit;
 using namespace RooStats;
 
-//////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////
+asymCLsTool::asymCLsTool() {
+// ----------------------------------------------------------------------------------------------------- 
+
+  //band configuration
+  betterBands           = 1; // (recommendation = 1) improve bands by using a more appropriate asimov dataset for those points
+  betterNegativeBands   = 0; // (recommendation = 0) improve also the negative bands
+  profileNegativeAtZero = 0; // (recommendation = 0) profile asimov for negative bands at zero
+
+  //other configuration
+  defaultMinimizer      = "Minuit2";     // or "Minuit"
+  defaultPrintLevel     = 0;             // Minuit print level
+  defaultStrategy       = 0;             // Minimization strategy. 0-2. 0 = fastest, least robust. 2 = slowest, most robust
+  killBelowFatal        = 1;             // In case you want to suppress RooFit warnings further, set to 1
+  doBlind               = 1;             // in case your analysis is blinded
+  conditionalExpected   = 1 && !doBlind; // Profiling mode for Asimov data: 0 = conditional MLEs, 1 = nominal MLEs
+  doTilde               = 1;             // bound mu at zero if true and do the \tilde{q}_{mu} asymptotics
+  doExp                 = 1;             // compute expected limit
+  doObs                 = 1 && !doBlind; // compute observed limit
+  precision             = 0.005;         // % precision in mu that defines iterative cutoff
+  verbose               = 0;             // 1 = very spammy
+  usePredictiveFit      = 0;             // experimental, extrapolate best fit nuisance parameters based on previous fit results
+  extrapolateSigma      = 0;             // experimantal, extrapolate sigma based on previous fits
+  maxRetries            = 3;             // number of minimize(fcn) retries before giving up
+
+}
 
 
-void runAsymptoticsCLs(const char* infile,
+void asymCLsTool::runAsymptoticsCLs(const char* infile,
+// ----------------------------------------------------------------------------------------------------- 
 		       const char* workspaceName,
 		       const char* modelConfigName,
 		       const char* dataName,
@@ -120,15 +63,13 @@ void runAsymptoticsCLs(const char* infile,
   //check inputs
   TFile f(infile);
   w = (RooWorkspace*)f.Get(workspaceName);
-  if (!w)
-  {
+  if (!w) {
     cout << "ERROR::Workspace: " << workspaceName << " doesn't exist!" << endl;
     return;
   }
 
   mc = (ModelConfig*)w->obj(modelConfigName);
-  if (!mc)
-  {
+  if (!mc) {
     cout << "ERROR::ModelConfig: " << modelConfigName << " doesn't exist!" << endl;
     return;
   }
@@ -164,8 +105,7 @@ void runAsymptoticsCLs(const char* infile,
   
   cout<<"POI name: "<<firstPOI->GetName()<<endl;
   data = (RooDataSet*)w->data(dataName);
-  if (!data)
-  {
+  if (!data) {
     cout << "ERROR::Dataset: " << dataName << " doesn't exist!" << endl;
     return;
   }
@@ -186,7 +126,7 @@ void runAsymptoticsCLs(const char* infile,
   }
 
   if(option.Contains("nosys")){
-    //if(mc->GetNuisanceParameters()) statistics::constSet((RooArgSet*)mc->GetNuisanceParameters(),true);
+    //if(mc->GetNuisanceParameters()) utils::setAllConstant((RooArgSet*)mc->GetNuisanceParameters(),true);
     RooArgSet* nuisAll=new RooArgSet();
     nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("ATLAS*"));
     nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("QCDscale*"));
@@ -194,18 +134,20 @@ void runAsymptoticsCLs(const char* infile,
     nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("HF*"));
     nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("MOD*"));
     nuisAll->add(*((RooArgSet*)mc->GetNuisanceParameters())->selectByName("BR*"));
-    statistics::constSet(nuisAll,true);
+    utils::setAllConstant(nuisAll,true);
     nuisAll->Print("v");
   }
+
   if(option.Contains("nojet")){
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JES*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JVF*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JER*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_BTag*"));
-    statistics::constSet(set_temp,true);
+    utils::setAllConstant(set_temp,true);
     set_temp->Print("v");
   }
+
   if(option.Contains("nothe")){
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("BR*"));
@@ -213,43 +155,48 @@ void runAsymptoticsCLs(const char* infile,
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("QCDscale*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("pdf*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("MOD*"));
-    statistics::constSet(set_temp,true);
+    utils::setAllConstant(set_temp,true);
     set_temp->Print("v");
   }
+
   if(option.Contains("nobkg")){
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_Hgg_BIAS*"));
-    statistics::constSet(set_temp,true);
+    utils::setAllConstant(set_temp,true);
     set_temp->Print("v");
   }
+
   if(option.Contains("nomss")){
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS*_MSS*"));
-    statistics::constSet(set_temp,true);
+    utils::setAllConstant(set_temp,true);
     set_temp->Print("v");
   }
+
   if(option.Contains("nolep")){
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_MU*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_EL*"));
-    statistics::constSet(set_temp,true);
+    utils::setAllConstant(set_temp,true);
     set_temp->Print("v");
   }
 
   if(option.Contains("nores")){
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_EM_mRes*"));
-    statistics::constSet(set_temp,true);
+    utils::setAllConstant(set_temp,true);
     set_temp->Print("v");
   }
+
   if(option.Contains("nonorm")){
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_PH*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_LUMI*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_Hgg_Trigger*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_stat*"));
-    statistics::constSet(set_temp,true);
+    utils::setAllConstant(set_temp,true);
   }
+
   if(option.Contains("nomigr")){
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_JES*"));
@@ -260,15 +207,17 @@ void runAsymptoticsCLs(const char* infile,
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_BTag*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_UEPS*"));
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("ATLAS_MET*"));
-    statistics::constSet(set_temp,true);
+    utils::setAllConstant(set_temp,true);
     set_temp->Print("v");
   }
+  
   if(option.Contains("fixbkgnorm")){
     RooArgSet *nuisanceParameters=(RooArgSet*)mc->GetNuisanceParameters();
     RooArgSet *norm=new RooArgSet();
     norm->add(*nuisanceParameters->selectByName("atlas_nbkg_*"));
-    statistics::constSet(norm,true);
+    utils::setAllConstant(norm,true);
   }
+
   if(option.Contains("fixbkgshape")){
     RooArgSet *nuisanceParameters=(RooArgSet*)mc->GetNuisanceParameters();
     RooArgSet *shape=(RooArgSet*)nuisanceParameters->clone("shape");
@@ -277,24 +226,25 @@ void runAsymptoticsCLs(const char* infile,
     norm->add(*nuisanceParameters->selectByName("atlas_nbkg_*"));
     shape->remove(*norm);
     shape->remove(*nuisAll);
-    statistics::constSet(shape,true);
+    utils::setAllConstant(shape,true);
   }
-  if(option.Contains("fixmass")){
+
+  if(option.Contains("fixmass")) {
     cout<<"REGTEST: Fixing mass to "<<w->var("m_H")->getVal()<<" GeV"<<endl;
     w->var("m_H")->setConstant(true);
   }
-  if(option.Contains("mutth")){
+  if(option.Contains("mutth")) {
     cout<<"REGTEST: Set limit on mu_ttH. fix mu to 1"<<endl;
     w->var("mu")->setVal(1);
     w->var("mu")->setConstant(true);
   }    
 
-  if(option.Contains("flatline")){
+  if(option.Contains("flatline")) {
     cout<<"REGTEST: Set the slope values to 0"<<endl;
     RooArgSet *set_temp=new RooArgSet();
     set_temp->add(*(RooArgSet*)mc->GetNuisanceParameters()->selectByName("slope_*"));
-    statistics::setvalSet(set_temp,0);
-    statistics::constSet(set_temp,true);
+    utils::setAllValue(set_temp,0);
+    utils::setAllConstant(set_temp,true);
     set_temp->Print("v");
   }
 
@@ -308,8 +258,7 @@ void runAsymptoticsCLs(const char* infile,
 
   global_status=0;
   RooDataSet* asimovData_0 = (RooDataSet*)w->data(asimovDataName);
-  if (!asimovData_0)
-  {
+  if (!asimovData_0) {
     asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
     
     //asimovData_0 = makeAsimovData2((conditionalExpected ? obs_nll : (RooNLLVar*)NULL), 0., 0.);
@@ -355,14 +304,12 @@ void runAsymptoticsCLs(const char* infile,
 
   firstPOI->setRange(-5*sigma, 5*sigma);
   map<int, int> N_status;
-  if (betterBands && doExp) // no better time than now to do this
-  {
+  if (betterBands && doExp) { // no better time than now to do this
     //find quantiles, starting with +2, since we should be at +1.96 right now
 
     double init_targetCLs = target_CLs;
     firstPOI->setRange(-5*sigma, 5*sigma);
-    for (int N=2;N>=-2;N--)
-    {
+    for (int N=2;N>=-2;N--) {
       if (N < 0 && !betterNegativeBands) continue;
       if (N == 0) continue;
       target_CLs=2*(1-ROOT::Math::gaussian_cdf(fabs(N))); // change this so findCrossing looks for sqrt(qmu95)=2
@@ -393,11 +340,10 @@ void runAsymptoticsCLs(const char* infile,
       double nll_val = asimov_N_nll->getVal();
       saveSnapshot(asimov_N_nll, NtimesSigma);
       map_muhat[asimov_N_nll] = NtimesSigma;
-      if (N < 0 && doTilde)
-      {
-	setMu(0);
-	firstPOI->setConstant(1);
-	nll_val = getNLL(asimov_N_nll);
+      if (N < 0 && doTilde) {
+        setMu(0);
+        firstPOI->setConstant(1);
+        nll_val = getNLL(asimov_N_nll);
       }
       map_nll_muhat[asimov_N_nll] = nll_val;
 
@@ -424,12 +370,11 @@ void runAsymptoticsCLs(const char* infile,
 
   bool hasFailures = false;
   if (obs_status != 0 || med_status != 0 || asimov0_status != 0) hasFailures = true;
-  for (map<int, int>::iterator itr=N_status.begin();itr!=N_status.end();itr++)
-  {
+  for (map<int, int>::iterator itr=N_status.begin();itr!=N_status.end();itr++) {
     if (itr->second != 0) hasFailures = true;
   }
-  if (hasFailures)
-  {
+
+  if (hasFailures) {
     cout << "--------------------------------" << endl;
     cout << "Unresolved fit failures detected" << endl;
     cout << "Asimov0:  " << asimov0_status << endl;
@@ -522,38 +467,33 @@ void runAsymptoticsCLs(const char* infile,
   timer.Print();
 }
 
-double getLimit(RooNLLVar* nll, double initial_guess)
-{
+double asymCLsTool::getLimit(RooNLLVar* nll, double initial_guess) {
+// ----------------------------------------------------------------------------------------------------- 
   cout << "------------------------" << endl;
   cout << "Getting limit for nll: " << nll->GetName() << endl;
   //get initial guess based on muhat and sigma(muhat)
   firstPOI->setConstant(0);
   global_status=0;
 
-  if (nll == asimov_0_nll) 
-  {
+  if (nll == asimov_0_nll) {
     setMu(0);
     firstPOI->setConstant(1);
   }
 
   double muhat;
-  if (map_nll_muhat.find(nll) == map_nll_muhat.end())
-  {
+  if (map_nll_muhat.find(nll) == map_nll_muhat.end()) {
     double nll_val = getNLL(nll);
     muhat = firstPOI->getVal();
     saveSnapshot(nll, muhat);
     map_muhat[nll] = muhat;
-    if (muhat < 0 && doTilde)
-    {
+    if (muhat < 0 && doTilde) {
       setMu(0);
       firstPOI->setConstant(1);
       nll_val = getNLL(nll);
     }
 
     map_nll_muhat[nll] = nll_val;
-  }
-  else
-  {
+  } else {
     muhat = map_muhat[nll];
   }
 
@@ -586,8 +526,7 @@ double getLimit(RooNLLVar* nll, double initial_guess)
   int nrItr = 0;
   double mu_pre = muhat;//mu_guess-10*precision*mu_guess;
   double mu_pre2 = muhat;
-  while (fabs(mu_pre-mu_guess) > precision*mu_guess*direction)
-  {
+  while (fabs(mu_pre-mu_guess) > precision*mu_guess*direction) {
     cout << "----------------------" << endl;
     cout << "Starting iteration " << nrItr << " of " << nll->GetName() << endl;
     // do this to avoid comparing multiple minima in the conditional and unconditional fits
@@ -599,39 +538,33 @@ double getLimit(RooNLLVar* nll, double initial_guess)
     saveSnapshot(nll, mu_guess);
 
 
-    if (nll != asimov_0_nll)
-    {
+    if (nll != asimov_0_nll) {
       if (nrItr == 0) loadSnapshot(asimov_0_nll, map_nll_muhat[asimov_0_nll]);
-      else if (usePredictiveFit) 
-      {
-	if (nrItr == 1) doPredictiveFit(nll, map_nll_muhat[asimov_0_nll], mu_pre, mu_guess);
-	else doPredictiveFit(nll, mu_pre2, mu_pre, mu_guess);
+      else if (usePredictiveFit) {
+        if (nrItr == 1) doPredictiveFit(nll, map_nll_muhat[asimov_0_nll], mu_pre, mu_guess);
+        else doPredictiveFit(nll, mu_pre2, mu_pre, mu_guess);
       }
       else loadSnapshot(asimov_0_nll, mu_pre);
 
       sigma_b=getSigma(asimov_0_nll, mu_guess, 0, qmuA);
       saveSnapshot(asimov_0_nll, mu_guess);
-    }
-    else
-    {
+    } else {
       sigma_b=sigma_guess;
       qmuA=qmu;
     }
 
     double corr = damping_factor*(mu_guess - findCrossing(sigma_guess, sigma_b, muhat));
-    for (map<double, double>::iterator itr=guess_to_corr.begin();itr!=guess_to_corr.end();itr++)
-    {
-      if (fabs(itr->first - (mu_guess-corr)) < direction*mu_guess*0.02 && fabs(corr) > direction*mu_guess*precision) 
-      {
-	damping_factor *= 0.8;
-	cout << "Changing damping factor to " << damping_factor << ", nrDamping = " << nrDamping << endl;
-	if (nrDamping++ > 10)
-	{
-	  nrDamping = 1;
-	  damping_factor = 1.0;
-	}
-	corr *= damping_factor;
-	break;
+    for (map<double, double>::iterator itr=guess_to_corr.begin();itr!=guess_to_corr.end();itr++) {
+      if (fabs(itr->first - (mu_guess-corr)) < direction*mu_guess*0.02 && fabs(corr) > direction*mu_guess*precision) {
+	      damping_factor *= 0.8;
+	      cout << "Changing damping factor to " << damping_factor << ", nrDamping = " << nrDamping << endl;
+	      if (nrDamping++ > 10)
+	      {
+	        nrDamping = 1;
+	        damping_factor = 1.0;
+	      }
+	      corr *= damping_factor;
+	      break;
       }
     }
 
@@ -641,12 +574,10 @@ double getLimit(RooNLLVar* nll, double initial_guess)
     mu_pre = mu_guess;
     mu_guess -= corr;
 
-
     pmu = calcPmu(qmu, sigma_b, mu_pre);
     pb = calcPb(qmu, sigma_b, mu_pre);
     CLs = calcCLs(qmu, sigma_b, mu_pre);
     qmu95 = getQmu95(sigma_b, mu_pre);
-
 
     cout << "NLL:            " << nll->GetName() << endl;
     cout << "Previous guess: " << mu_pre << endl;
@@ -664,16 +595,12 @@ double getLimit(RooNLLVar* nll, double initial_guess)
     cout << "New guess:      " << mu_guess << endl;
     cout << endl;
 
-      
-
     nrItr++;
-    if (nrItr > 25)
-    {
+    if (nrItr > 25) {
       cout << "Infinite loop detected in getLimit(). Please intervene." << endl;
       break;
     }
   }
-
 
   cout << "Found limit for nll " << nll->GetName() << ": " << mu_guess << endl;
   cout << "Finished in " << nrItr << " iterations." << endl;
@@ -682,8 +609,8 @@ double getLimit(RooNLLVar* nll, double initial_guess)
 }
 
 
-double getSigma(RooNLLVar* nll, double mu, double muhat, double& qmu)
-{
+double asymCLsTool::getSigma(RooNLLVar* nll, double mu, double muhat, double& qmu) {
+// ----------------------------------------------------------------------------------------------------- 
   qmu = getQmu(nll, mu);
   if (verbose) cout << "qmu = " << qmu << endl;
   if (mu*direction < muhat) return fabs(mu-muhat)/sqrt(qmu);
@@ -691,8 +618,9 @@ double getSigma(RooNLLVar* nll, double mu, double muhat, double& qmu)
   else return (mu-muhat)*direction/sqrt(qmu);
 }
 
-double getQmu(RooNLLVar* nll, double mu)
-{
+
+double asymCLsTool::getQmu(RooNLLVar* nll, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   double nll_muhat = map_nll_muhat[nll];
   bool isConst = firstPOI->isConstant();
   firstPOI->setConstant(1);
@@ -703,29 +631,30 @@ double getQmu(RooNLLVar* nll, double mu)
   return 2*(nll_val-nll_muhat);
 }
 
-void saveSnapshot(RooNLLVar* nll, double mu)
-{
+
+void asymCLsTool::saveSnapshot(RooNLLVar* nll, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   stringstream snapshotName;
   snapshotName << nll->GetName() << "_" << mu;
   w->saveSnapshot(snapshotName.str().c_str(), *mc->GetNuisanceParameters());
 }
 
-void loadSnapshot(RooNLLVar* nll, double mu)
-{
+
+void asymCLsTool::loadSnapshot(RooNLLVar* nll, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   stringstream snapshotName;
   snapshotName << nll->GetName() << "_" << mu;
   w->loadSnapshot(snapshotName.str().c_str());
 }
 
-void doPredictiveFit(RooNLLVar* nll, double mu1, double mu2, double mu)
-{
-  if (fabs(mu2-mu) < direction*mu*precision*4)
-  {
+void asymCLsTool::doPredictiveFit(RooNLLVar* nll, double mu1, double mu2, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
+  if (fabs(mu2-mu) < direction*mu*precision*4) {
     loadSnapshot(nll, mu2);
     return;
   }
 
-//extrapolate to mu using mu1 and mu2 assuming nuis scale linear in mu
+  // extrapolate to mu using mu1 and mu2 assuming nuis scale linear in mu
   const RooArgSet* nuis = mc->GetNuisanceParameters();
   int nrNuis = nuis->getSize();
   double* theta_mu1 = new double[nrNuis];
@@ -735,23 +664,20 @@ void doPredictiveFit(RooNLLVar* nll, double mu1, double mu2, double mu)
   RooRealVar* var=NULL;
   int counter = 0;
   loadSnapshot(nll, mu1);
-  while ((var == (RooRealVar*)itr->Next()))
-  {
+  while ((var == (RooRealVar*)itr->Next())) {
     theta_mu1[counter++] = var->getVal();
   }
 
   itr->Reset();
   counter = 0;
   loadSnapshot(nll, mu2);
-  while ((var == (RooRealVar*)itr->Next()))
-  {
+  while ((var == (RooRealVar*)itr->Next())) {
     theta_mu2[counter++] = var->getVal();
   }
 
   itr->Reset();
   counter = 0;
-  while ((var == (RooRealVar*)itr->Next()))
-  {
+  while ((var == (RooRealVar*)itr->Next())) {
     double m = (theta_mu2[counter] - theta_mu1[counter])/(mu2-mu1);
     double b = theta_mu2[counter] - m*mu2;
     double theta_extrap = m*mu+b;
@@ -765,16 +691,16 @@ void doPredictiveFit(RooNLLVar* nll, double mu1, double mu2, double mu)
   delete theta_mu2;
 }
 
-RooNLLVar* createNLL(RooDataSet* _data)
-{
+RooNLLVar* asymCLsTool::createNLL(RooDataSet* _data) {
+// ----------------------------------------------------------------------------------------------------- 
   RooArgSet nuis = *mc->GetNuisanceParameters();
   RooArgSet glob = *mc->GetGlobalObservables();
   RooNLLVar* nll = (RooNLLVar*)mc->GetPdf()->createNLL(*_data, Constrain(nuis), GlobalObservables(glob));
   return nll;
 }
 
-double getNLL(RooNLLVar* nll)
-{
+double asymCLsTool::getNLL(RooNLLVar* nll) {
+// ----------------------------------------------------------------------------------------------------- 
   string snapshotName = map_snapshots[nll];
   if (snapshotName != "") w->loadSnapshot(snapshotName.c_str());
   minimize(nll);
@@ -784,7 +710,8 @@ double getNLL(RooNLLVar* nll)
 }
 
 
-double findCrossing(double sigma_obs, double sigma, double muhat) {
+double asymCLsTool::findCrossing(double sigma_obs, double sigma, double muhat) {
+// ----------------------------------------------------------------------------------------------------- 
   double mu_guess = muhat + ROOT::Math::gaussian_quantile(1-target_CLs,1)*sigma_obs*direction;
   int nrItr = 0;
   int nrDamping = 1;
@@ -835,7 +762,8 @@ double findCrossing(double sigma_obs, double sigma, double muhat) {
   return mu_guess;
 }
 
-void setMu(double mu) {
+void asymCLsTool::setMu(double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   if (mu != mu) {
     cout << "ERROR::POI gave nan. Please intervene." << endl;
     exit(1);
@@ -846,7 +774,8 @@ void setMu(double mu) {
 }
 
 
-double getQmu95_brute(double sigma, double mu) {
+double asymCLsTool::getQmu95_brute(double sigma, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   double step_size = 0.001;
   double start = step_size;
   if (mu/sigma > 0.2) start = 0;
@@ -858,7 +787,8 @@ double getQmu95_brute(double sigma, double mu) {
   return 20;
 }
 
-double getQmu95(double sigma, double mu) {
+double asymCLsTool::getQmu95(double sigma, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   double qmu95 = 0;
   //no sane man would venture this far down into |mu/sigma|
   double target_N = ROOT::Math::gaussian_cdf(1-target_CLs,1);
@@ -918,7 +848,8 @@ double getQmu95(double sigma, double mu) {
   return qmu95;
 }
 
-double calcCLs(double qmu_tilde, double sigma, double mu) {
+double asymCLsTool::calcCLs(double qmu_tilde, double sigma, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   double pmu = calcPmu(qmu_tilde, sigma, mu);
   double pb = calcPb(qmu_tilde, sigma, mu);
   if (verbose) {
@@ -929,7 +860,8 @@ double calcCLs(double qmu_tilde, double sigma, double mu) {
   return pmu/(1-pb);
 }
 
-double calcPmu(double qmu, double sigma, double mu) {
+double asymCLsTool::calcPmu(double qmu, double sigma, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   double pmu;
   if (qmu < mu*mu/(sigma*sigma) || !doTilde) {
     pmu = 1-ROOT::Math::gaussian_cdf(sqrt(qmu));
@@ -940,7 +872,8 @@ double calcPmu(double qmu, double sigma, double mu) {
   return pmu;
 }
 
-double calcPb(double qmu, double sigma, double mu) {
+double asymCLsTool::calcPb(double qmu, double sigma, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   if (qmu < mu*mu/(sigma*sigma) || !doTilde) {
     return 1-ROOT::Math::gaussian_cdf(fabs(mu/sigma) - sqrt(qmu));
   } else {
@@ -948,7 +881,8 @@ double calcPb(double qmu, double sigma, double mu) {
   }
 }
 
-double calcDerCLs(double qmu, double sigma, double mu) {
+double asymCLsTool::calcDerCLs(double qmu, double sigma, double mu) {
+// ----------------------------------------------------------------------------------------------------- 
   double dpmu_dq = 0;
   double d1mpb_dq = 0;
 
@@ -972,14 +906,16 @@ double calcDerCLs(double qmu, double sigma, double mu) {
   return dpmu_dq/(1-pb)-calcCLs(qmu, sigma, mu)/(1-pb)*d1mpb_dq;
 }
 
-int minimize(RooNLLVar* nll) {
+int asymCLsTool::minimize(RooNLLVar* nll) {
+// ----------------------------------------------------------------------------------------------------- 
   nll->enableOffsetting(true);
   nrMinimize++;
   RooAbsReal* fcn = (RooAbsReal*)nll;
   return minimize(fcn);
 }
 
-int minimize(RooAbsReal* fcn) {
+int asymCLsTool::minimize(RooAbsReal* fcn) {
+// ----------------------------------------------------------------------------------------------------- 
   static int nrItr = 0;
    // cout << "Starting minimization. Using these global observables" << endl;
    // mc->GetGlobalObservables()->Print("v");
@@ -1005,14 +941,16 @@ int minimize(RooAbsReal* fcn) {
     strat++;
     cout << "Fit failed with status " << status << ". Retrying with strategy " << strat << endl;
     minim.setStrategy(strat);
-    status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
+    status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
+                             ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
   }
 
   if (status != 0 && status != 1 && strat < 2) {
     strat++;
     cout << "Fit failed with status " << status << ". Retrying with strategy " << strat << endl;
     minim.setStrategy(strat);
-    status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
+    status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
+                             ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
   }
 
   //cout << "status is " << status << endl;
@@ -1081,7 +1019,8 @@ int minimize(RooAbsReal* fcn) {
 }
 
 
-void unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, RooArgSet& nuis, int& counter)
+void asymCLsTool::unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, RooArgSet& nuis, int& counter)
+// ----------------------------------------------------------------------------------------------------- 
 {
   if (counter > 50) {
     cout << "ERROR::Couldn't unfold constraints!" << endl;
@@ -1116,7 +1055,8 @@ void unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArgSet& obs, Roo
 
 
 
-RooDataSet* makeAsimovData( bool doConditional, 
+RooDataSet* asymCLsTool::makeAsimovData( bool doConditional, 
+// ----------------------------------------------------------------------------------------------------- 
                             RooNLLVar* conditioning_nll, 
                             double mu_val, 
                             string* mu_str, 
@@ -1532,6 +1472,94 @@ RooDataSet* makeAsimovData( bool doConditional,
   return asimovData;
 }
 
+
+bool asymCLsTool::checkModel(const RooStats::ModelConfig &model, bool throwOnFail) {
+// ----------------------------------------------------------------------------------------------------- 
+  bool ok = true; 
+  std::ostringstream errors;
+  std::auto_ptr<TIterator> iter;
+  RooAbsPdf *pdf = model.GetPdf(); 
+  if (pdf == 0) throw std::invalid_argument("Model without Pdf");
+   
+  RooArgSet allowedToFloat;
+  
+  // Check model observables
+  if (model.GetObservables() == 0) {
+    ok = false; errors << "ERROR: model does not define observables.\n";
+    std::cout << errors.str() << std::endl;
+    if (throwOnFail) throw std::invalid_argument(errors.str()); else return false;
+  } else {
+    allowedToFloat.add(*model.GetObservables());
+  }
+
+  // Check model parameters of interset
+  if (model.GetParametersOfInterest() == 0) {
+    ok = false; errors << "ERROR: model does not define parameters of interest.\n";
+  } else {
+    iter.reset(model.GetParametersOfInterest()->createIterator());
+    for (RooAbsArg *a = (RooAbsArg *) iter->Next(); a != 0; a = (RooAbsArg *) iter->Next()) {
+      RooRealVar *v = dynamic_cast<RooRealVar *>(a);
+      if (!v) { 
+        errors << "ERROR: parameter of interest " << a->GetName() << " is a " << a->ClassName() << " and not a RooRealVar\n"; 
+        ok = false; continue; 
+      }
+      if (!pdf->dependsOn(*v)) { 
+        errors << "ERROR: pdf does not depend on parameter of interest " << a->GetName() << "\n"; 
+        ok = false; continue; 
+      }
+      allowedToFloat.add(*v);
+    }
+  }
+  
+  // Check model nuisance parameters 
+  if (model.GetNuisanceParameters() != 0) {
+    iter.reset(model.GetNuisanceParameters()->createIterator());
+    for (RooAbsArg *a = (RooAbsArg *) iter->Next(); a != 0; a = (RooAbsArg *) iter->Next()) {
+      RooRealVar *v = dynamic_cast<RooRealVar *>(a);
+      if (!v) { 
+        errors << "ERROR: nuisance parameter " << a->GetName() << " is a " << a->ClassName() << " and not a RooRealVar\n"; 
+        ok = false; continue; 
+      }
+      if (v->isConstant()) { 
+        errors << "ERROR: nuisance parameter " << a->GetName() << " is constant\n"; 
+        ok = false; continue; 
+      }
+      if (!pdf->dependsOn(*v))
+      {
+          errors << "WARNING: pdf does not depend on nuisance parameter, removing " << a->GetName() << "\n";
+          const_cast<RooArgSet*>(model.GetNuisanceParameters())->remove(*a);
+          continue;
+      }
+      allowedToFloat.add(*v);
+    }
+  }
+
+  // check model global observables 
+  if (model.GetGlobalObservables() != 0) {
+    iter.reset(model.GetGlobalObservables()->createIterator());
+    for (RooAbsArg *a = (RooAbsArg *) iter->Next(); a != 0; a = (RooAbsArg *) iter->Next()) {
+      RooRealVar *v = dynamic_cast<RooRealVar *>(a);
+      if (!v) { ok = false; 
+        errors << "ERROR: global observable " << a->GetName() << " is a " << a->ClassName() << " and not a RooRealVar\n"; continue; }
+      if (!v->isConstant()) { ok = false; errors << "ERROR: global observable " << a->GetName() << " is not constant\n"; continue; }
+      if (!pdf->dependsOn(*v)) { errors << "WARNING: pdf does not depend on global observable " << a->GetName() << "\n"; continue; }
+    }
+  }
+
+  // check the rest of the pdf
+  std::auto_ptr<RooArgSet> params(pdf->getParameters(*model.GetObservables()));
+  iter.reset(params->createIterator());
+  for (RooAbsArg *a = (RooAbsArg *) iter->Next(); a != 0; a = (RooAbsArg *) iter->Next()) {
+    if (a->isConstant() || allowedToFloat.contains(*a)) continue;
+    if (a->getAttribute("flatParam")) continue;
+    errors << "WARNING: pdf parameter " << a->GetName() << " (type " << a->ClassName() << ")"
+            << " is not allowed to float (it's not nuisance, poi, observable or global observable)\n";
+  }
+  iter.reset();
+  std::cout << errors.str() << std::endl;
+  if (!ok && throwOnFail) throw std::invalid_argument(errors.str());
+  return ok;
+}
 
 
 
