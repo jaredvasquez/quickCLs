@@ -20,15 +20,6 @@ std::string _mcName = "ModelConfig";
 std::string _poiStr = "";
 std::string _fixNPStr = "";
 
-bool _saveWS = false;
-bool _useHESSE = false;
-bool _useMINOS = false;
-bool _useSIMPLEX = false;
-bool _nllOffset = true;
-float _minTolerance = 0.001;
-int _optConst = 2;
-int _nCPU = 1;
-    
 //band configuration
 bool _betterBands = 1;
 bool _betterNegativeBands = 0;
@@ -74,23 +65,6 @@ int main( int argc, char** argv )
     ( "poi,p",          po::value<std::string>(&_poiStr),     "Specify POIs to be used in fit" )
     ( "fixNP,n",        po::value<std::string>(&_fixNPStr),   "Specify NPs to be used in fit" )
 
-    // Fit Options
-    ( "simplex",        po::value<bool>(&_useSIMPLEX)->default_value(_useSIMPLEX),
-                          "Estimate central values with SIMPLEX" )
-    ( "hesse",          po::value<bool>(&_useHESSE)->default_value(_useHESSE),
-                          "Estimate errors with HESSE after fit" )
-    ( "minos",          po::value<bool>(&_useMINOS)->default_value(_useMINOS),
-                          "Get asymmetric errors with MINOS fit" )
-    ( "nllOffset",      po::value<bool>(&_nllOffset)->default_value(_nllOffset),         
-                          "Set NLL offset" )
-    ( "numCPU",         po::value<int>(&_nCPU)->default_value(_nCPU),
-                          "Set number of CPUs for fit" )
-    ( "optConst",       po::value<int>(&_optConst)->default_value(_optConst),
-                          "Set optimize constant" )
-    ( "minTolerance",   po::value<float>(&_minTolerance)->default_value(_minTolerance),
-                          "Set minimizer tolerance" )
-    ( "saveWS",         po::value<bool>(&_saveWS)->default_value(_saveWS),
-                          "Save postfit workspace to the output file" )
     // Band Configuration
     ( "betterBands",    po::value<bool>(&_betterBands)->default_value(_betterBands),
                           "Improve bands by using a more appropriate asimov dataset for those points" )
@@ -259,22 +233,22 @@ int main( int argc, char** argv )
   double t_real_ = timer.RealTime()/60.;
   printf("\nAll fits done in %.2f min (cpu), %.2f min (real)\n", t_cpu_, t_real_);
 
-  string STATMSG = (status) ? "\033[91m STATUS FAILED \033[0m" : "\033[92m STATUS OK \033[0m" ;
+  //string STATMSG = (status) ? "\033[91m STATUS FAILED \033[0m" : "\033[92m STATUS OK \033[0m" ;
 
   // Print summary 
-  cout << endl << "  Fit Summary of POIs (" << STATMSG << ")" << endl;
-  cout << "------------------------------------------------" << endl;
-  for (RooLinkedListIter it = fitPOIs.iterator(); RooRealVar* POI = dynamic_cast<RooRealVar*>(it.Next());) {
-    if (POI->isConstant()) continue;
-    POI->Print();
-  }
+  //cout << endl << "  Fit Summary of POIs (" << STATMSG << ")" << endl;
+  //cout << "------------------------------------------------" << endl;
+  //for (RooLinkedListIter it = fitPOIs.iterator(); RooRealVar* POI = dynamic_cast<RooRealVar*>(it.Next());) {
+  //  if (POI->isConstant()) continue;
+  //  POI->Print();
+  //}
 
-  if (status) {
-    cout << FAIL << endl;
-    cout << "   *****************************************" << endl;
-    cout << "          WARNING: Fit status failed.       " << endl;
-    cout << "   *****************************************" << ENDC << endl;
-  }
+  //if (status) {
+  //  cout << FAIL << endl;
+  //  cout << "   *****************************************" << endl;
+  //  cout << "          WARNING: Fit status failed.       " << endl;
+  //  cout << "   *****************************************" << ENDC << endl;
+  //}
 
   cout << endl;
   return 1;

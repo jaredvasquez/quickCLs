@@ -72,6 +72,7 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
     cout << "ERROR::ModelConfig: " << modelConfigName << " doesn't exist!" << endl;
     return;
   }
+
   firstPOI = (RooRealVar*)mc->GetParametersOfInterest()->first();
   if(option.Contains("vbfoggf")) firstPOI=w->var("vbf_o_ggf");
   if(option.Contains("vhoggf")) firstPOI=w->var("vh_o_ggf");
@@ -248,10 +249,12 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
   }
 
   mc->GetParametersOfInterest()->Print("v");
+
   //RooAbsPdf* pdf = mc->GetPdf();
   obs_nll = createNLL(data);//(RooNLLVar*)pdf->createNLL(*data);
   map_snapshots[obs_nll] = "nominalGlobs";
   map_data_nll[data] = obs_nll;
+
   w->saveSnapshot("nominalGlobs",*mc->GetGlobalObservables());
   w->saveSnapshot("nominalNuis",*mc->GetNuisanceParameters());
 
@@ -391,15 +394,14 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
   cout << "+1sigma:  " << mu_up_p1_approx << endl;
   cout << "-1sigma:  " << mu_up_n1_approx << endl;
   cout << "-2sigma:  " << mu_up_n2_approx << endl;
-  if (betterBands)
-  {
+
+  if (betterBands) {
     cout << endl;
     cout << "Correct bands" << endl;
     cout << "+2sigma:  " << mu_up_p2 << endl;
     cout << "+1sigma:  " << mu_up_p1 << endl;
     cout << "-1sigma:  " << mu_up_n1 << endl;
     cout << "-2sigma:  " << mu_up_n2 << endl;
-
   }
 
   cout << "Median:   " << med_limit << endl;
@@ -465,6 +467,7 @@ void asymCLsTool::runAsymptoticsCLs(const char* infile,
   cout << "Finished with " << nrMinimize << " calls to minimize(nll)" << endl;
   timer.Print();
 }
+
 
 double asymCLsTool::getLimit(RooNLLVar* nll, double initial_guess) {
 // ----------------------------------------------------------------------------------------------------- 
@@ -646,6 +649,7 @@ void asymCLsTool::loadSnapshot(RooNLLVar* nll, double mu) {
   w->loadSnapshot(snapshotName.str().c_str());
 }
 
+
 void asymCLsTool::doPredictiveFit(RooNLLVar* nll, double mu1, double mu2, double mu) {
 // ----------------------------------------------------------------------------------------------------- 
   if (fabs(mu2-mu) < direction*mu*precision*4) {
@@ -690,6 +694,7 @@ void asymCLsTool::doPredictiveFit(RooNLLVar* nll, double mu1, double mu2, double
   delete theta_mu2;
 }
 
+
 RooNLLVar* asymCLsTool::createNLL(RooDataSet* _data) {
 // ----------------------------------------------------------------------------------------------------- 
   RooArgSet nuis = *mc->GetNuisanceParameters();
@@ -697,6 +702,7 @@ RooNLLVar* asymCLsTool::createNLL(RooDataSet* _data) {
   RooNLLVar* nll = (RooNLLVar*)mc->GetPdf()->createNLL(*_data, Constrain(nuis), GlobalObservables(glob));
   return nll;
 }
+
 
 double asymCLsTool::getNLL(RooNLLVar* nll) {
 // ----------------------------------------------------------------------------------------------------- 
@@ -761,6 +767,7 @@ double asymCLsTool::findCrossing(double sigma_obs, double sigma, double muhat) {
   return mu_guess;
 }
 
+
 void asymCLsTool::setMu(double mu) {
 // ----------------------------------------------------------------------------------------------------- 
   if (mu != mu) {
@@ -785,6 +792,7 @@ double asymCLsTool::getQmu95_brute(double sigma, double mu) {
 
   return 20;
 }
+
 
 double asymCLsTool::getQmu95(double sigma, double mu) {
 // ----------------------------------------------------------------------------------------------------- 
@@ -847,6 +855,7 @@ double asymCLsTool::getQmu95(double sigma, double mu) {
   return qmu95;
 }
 
+
 double asymCLsTool::calcCLs(double qmu_tilde, double sigma, double mu) {
 // ----------------------------------------------------------------------------------------------------- 
   double pmu = calcPmu(qmu_tilde, sigma, mu);
@@ -858,6 +867,7 @@ double asymCLsTool::calcCLs(double qmu_tilde, double sigma, double mu) {
   if (pb == 1) return 0.5;
   return pmu/(1-pb);
 }
+
 
 double asymCLsTool::calcPmu(double qmu, double sigma, double mu) {
 // ----------------------------------------------------------------------------------------------------- 
@@ -871,6 +881,7 @@ double asymCLsTool::calcPmu(double qmu, double sigma, double mu) {
   return pmu;
 }
 
+
 double asymCLsTool::calcPb(double qmu, double sigma, double mu) {
 // ----------------------------------------------------------------------------------------------------- 
   if (qmu < mu*mu/(sigma*sigma) || !doTilde) {
@@ -879,6 +890,7 @@ double asymCLsTool::calcPb(double qmu, double sigma, double mu) {
     return 1-ROOT::Math::gaussian_cdf((mu*mu/(sigma*sigma) - qmu)/(2*fabs(mu/sigma)));
   }
 }
+
 
 double asymCLsTool::calcDerCLs(double qmu, double sigma, double mu) {
 // ----------------------------------------------------------------------------------------------------- 
@@ -905,6 +917,7 @@ double asymCLsTool::calcDerCLs(double qmu, double sigma, double mu) {
   return dpmu_dq/(1-pb)-calcCLs(qmu, sigma, mu)/(1-pb)*d1mpb_dq;
 }
 
+
 int asymCLsTool::minimize(RooNLLVar* nll) {
 // ----------------------------------------------------------------------------------------------------- 
   nll->enableOffsetting(true);
@@ -912,6 +925,7 @@ int asymCLsTool::minimize(RooNLLVar* nll) {
   RooAbsReal* fcn = (RooAbsReal*)nll;
   return minimize(fcn);
 }
+
 
 int asymCLsTool::minimize(RooAbsReal* fcn) {
 // ----------------------------------------------------------------------------------------------------- 
@@ -1051,7 +1065,6 @@ void asymCLsTool::unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArg
   }
   delete itr;
 }
-
 
 
 RooDataSet* asymCLsTool::makeAsimovData( bool doConditional, 
