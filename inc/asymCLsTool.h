@@ -115,16 +115,14 @@ class asymCLsTool : public TObject {
     void setPredictiveFit( bool flag ) { usePredictiveFit = flag; };
     void setKillBelowFatal( bool flag) { killBelowFatal = flag; };
     
-    //main
-    void runAsymptoticsCLs(const char* infile,
-               const char* workspaceName,
-               const char* modelConfigName,
-               const char* dataName,
-               const char* asimovDataName,
-               string folder,
-               string mass,
-               double CL,
-               TString option);
+    void runAsymptoticsCLs(  RooWorkspace *ws,
+               RooStats::ModelConfig *mc,
+               RooDataSet *data,
+               RooDataSet *asimovData_0,
+		           string folder,
+		           string mass,
+		           double CL,
+		           TString option );
 
     bool checkModel(const RooStats::ModelConfig &model, bool throwOnFail=false) ;
 };

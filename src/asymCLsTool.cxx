@@ -39,17 +39,15 @@ asymCLsTool::asymCLsTool() {
 }
 
 
-void asymCLsTool::runAsymptoticsCLs(
+void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *ws,
+                                      RooStats::ModelConfig *mc,
+                                      RooDataSet *data,
+                                      RooDataSet *asimovData_0,
+		                                  string folder,
+		                                  string mass,
+		                                  double CL,
+		                                  TString option  )
 // ----------------------------------------------------------------------------------------------------- 
-           const char* infile,
-		       const char* workspaceName,
-		       const char* modelConfigName,
-		       const char* dataName,
-		       const char* asimovDataName,
-		       string folder,
-		       string mass,
-		       double CL,
-		       TString option)
 {
   TStopwatch timer;
   timer.Start();
@@ -61,18 +59,7 @@ void asymCLsTool::runAsymptoticsCLs(
   //RooNLLVar::SetIgnoreZeroEntries(1);
 
   //check inputs
-  TFile f(infile);
-  w = (RooWorkspace*)f.Get(workspaceName);
-  if (!w) {
-    cout << "ERROR::Workspace: " << workspaceName << " doesn't exist!" << endl;
-    return;
-  }
-
-  mc = (ModelConfig*)w->obj(modelConfigName);
-  if (!mc) {
-    cout << "ERROR::ModelConfig: " << modelConfigName << " doesn't exist!" << endl;
-    return;
-  }
+  w = ws;
 
   firstPOI = (RooRealVar*)mc->GetParametersOfInterest()->first();
   if(option.Contains("vbfoggf")) firstPOI=w->var("vbf_o_ggf");
@@ -87,11 +74,6 @@ void asymCLsTool::runAsymptoticsCLs(
   }
   
   cout<<"POI name: "<<firstPOI->GetName()<<endl;
-  data = (RooDataSet*)w->data(dataName);
-  if (!data) {
-    cout << "ERROR::Dataset: " << dataName << " doesn't exist!" << endl;
-    return;
-  }
 
   mc->GetParametersOfInterest()->Print("v");
 
@@ -104,7 +86,6 @@ void asymCLsTool::runAsymptoticsCLs(
   w->saveSnapshot("nominalNuis",*mc->GetNuisanceParameters());
 
   global_status=0;
-  RooDataSet* asimovData_0 = (RooDataSet*)w->data(asimovDataName);
   if (!asimovData_0) {
     asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
     //asimovData_0 = makeAsimovData2((conditionalExpected ? obs_nll : (RooNLLVar*)NULL), 0., 0.);
