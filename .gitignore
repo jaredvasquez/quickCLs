@@ -1,0 +1,10 @@
+bin
+lib
+obj
+*.root
+*.pcm
+src/*_Dict.cxx
+workspaces
+scripts
+profileNLLScans
+breakdownPulls

@@ -1,0 +1,183 @@
+ ###########################################################################
+ # @Project: SFrame - ROOT-based analysis framework for ATLAS              #
+ #                                                                         #
+ # @author Stefan Ask       <Stefan.Ask@cern.ch>           - Manchester    #
+ # @author David Berge      <David.Berge@cern.ch>          - CERN          #
+ # @author Johannes Haller  <Johannes.Haller@cern.ch>      - Hamburg       #
+ # @author A. Krasznahorkay <Attila.Krasznahorkay@cern.ch> - CERN/Debrecen #
+ #                                                                         #
+ #  This is the general part of any SFrame related libraries's Makefile.   #
+ #  It needs the following definitions to work:                            #
+ #   - LIBRARY                                                             #
+ #   - OBJDIR                                                              #
+ #   - DEPDIR                                                              #
+ #   - SRCDIR                                                              #
+ #   - INCDIR                                                              #
+ #                                                                         #
+ #  And of course all the definitions from $(ROOTSYS)/test/Makefile.arch   #
+ #                                                                         #
+ ###########################################################################
+
+MAKEFLAGS = --no-print-directory -r -s -j2
+
+#
+# Include the architecture definitions from the ROOT sources
+#
+#  Makefile.arch can be in two different locations depending on the system
+#  you're compiling on. The Fink installed version of ROOT has this file
+#  in a different location than the "normally installed" ROOT versions...
+#
+ARCH_LOC_1 := $(wildcard $(shell root-config --prefix)/etc/Makefile.arch)
+# ARCH_LOC_2 := $(wildcard $(shell root-config --prefix)/share/root/test/Makefile.arch)
+ARCH_LOC_2 := $(wildcard $(shell root-config --prefix)/test/Makefile.arch)
+ARCH_LOC_3 := $(wildcard $(shell root-config --prefix)/share/doc/root/test/Makefile.arch)
+ifneq ($(strip $(ARCH_LOC_1)),)
+  #$(info Using $(ARCH_LOC_1))
+  include $(ARCH_LOC_1)
+else
+  ifneq ($(strip $(ARCH_LOC_2)),)
+    #$(info Using $(ARCH_LOC_2))
+    include $(ARCH_LOC_2)
+  else
+    ifneq ($(strip $(ARCH_LOC_3)),)
+      #$(info Using $(ARCH_LOC_3))
+      include $(ARCH_LOC_3)
+    else
+      $(error Could not find Makefile.arch!)
+    endif
+  endif
+endif
+
+
+####export TTBUILD=debug when you want to debug#####
+DEBUGFLAGS    = -g
+#DEBUGFLAGS    = -gstabs
+OPTFLAGS      = -O2 -std=c++11
+# Optional compiler options for gcc >= 3.4.0
+#OPTFLAGS      = -O3 -march=opteron
+ifeq (debug,$(findstring debug,$(TTBUILD)))
+OPT           = $(DEBUGFLAGS)
+NOOPT         =
+else
+OPT           = $(OPTFLAGS)
+NOOPT         =
+endif
+
+
+# Some compilation options
+VPATH    += $(OBJDIR) $(SRCDIR)
+INCLUDES += -I$(_DIRFIT)
+INCLUDES += -I$(INCDIR)
+
+CXXFLAGS += -Wall -Wno-overloaded-virtual -Wno-unused
+CXXFLAGS += -Wno-unused-parameter
+C++FLAGS = $(subst -O2,$(OPT),$(CXXFLAGS))
+
+# Set the locations of some files
+DICTHEAD  = $(SRCDIR)/$(LIBRARY)_Dict.h
+DICTFILE  = $(SRCDIR)/$(LIBRARY)_Dict.$(SrcSuf)
+DICTOBJ   = $(OBJDIR)/$(LIBRARY)_Dict.$(ObjSuf)
+DICTLDEF  = $(INCDIR)/$(LIBRARY)_LinkDef.h
+SKIPCPPLIST = $(DICTFILE)
+SKIPHLIST   = $(DICTHEAD) $(DICTLDEF)
+LIBFILE   = $(_LIB_PATH)/lib$(LIBRARY).a
+SHLIBFILE = $(_LIB_PATH)/lib$(LIBRARY).$(DllSuf)
+UNAME = $(shell uname)
+
+# Set up the default targets
+default: shlib setlinks
+
+# List of all header and source files to build
+# HLIST   = $(filter-out $(SKIPHLIST),$(wildcard $(INCDIR)/*.h))
+# HLIST= $(notdir $(shell grep -l ClassDef $(INCDIR)/*h))
+HLIST= $(shell grep -l ClassDef $(INCDIR)/*h)
+CPPLIST = $(filter-out $(SKIPCPPLIST),$(wildcard $(SRCDIR)/*.$(SrcSuf)))
+
+
+# List of all object files to build
+OLIST = $(patsubst %.$(SrcSuf),%.o,$(notdir $(CPPLIST)))
+
+
+print:
+	@echo ""
+	@echo "${HLIST}"
+	@echo "${CPPLIST}"
+	@echo "${OLIST}"
+	@echo ""
+
+
+# Implicit rule to compile all sources
+%.o : %.$(SrcSuf)
+	@echo "Compiling $<"
+	@mkdir -p $(OBJDIR)
+	@$(CXX) $(C++FLAGS) -O2 -c $< -o $(OBJDIR)/$(notdir $@) $(INCLUDES)
+
+# Rule to create the dictionary
+$(DICTFILE): $(HLIST) $(DICTLDEF)
+	@echo "Generating dictionary $@" 
+	@$(shell root-config --exec-prefix)/bin/rootcint -f $(DICTFILE) -c -p $(INCLUDES) $^
+	@mv src/$(LIBRARY)_Dict_rdict.pcm lib/$(LIBRARY)_Dict_rdict.pcm
+
+# Rule to comile the dictionary
+$(DICTOBJ): $(DICTFILE)
+	@echo "Compiling $<"
+	@mkdir -p $(OBJDIR)
+	$(CXX) $(C++FLAGS) -O2 -c $(INCLUDES) -o $@ $<
+
+# Rule that creates various symbolic links
+setlinks: $(SHLIBFILE)
+	if [ `root-config --platform` = "macosx" -a \
+        ! -e $(_LIB_PATH)/lib$(LIBRARY).so ]; then \
+		echo "Linking $(SHLIBFILE) to $(_LIB_PATH)/lib$(LIBRARY).so"; \
+		ln -s $(SHLIBFILE) $(_LIB_PATH)/lib$(LIBRARY).so; \
+	fi
+
+##############################
+# The dependencies section   
+# - the purpose of the .d files is to keep track of the
+#   header file dependence
+# - this can be achieved using the makedepend command 
+##############################
+# .d tries to pre-process .cc
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),distclean)
+-include $(foreach var,$(notdir $(CPPLIST:.$(SrcSuf)=.d)),$(DEPDIR)/$(var))
+endif
+endif
+
+$(DEPDIR)/%.d: %.$(SrcSuf)
+	@mkdir -p $(DEPDIR)
+	if test -f $< ; then \
+		echo "Making $(@F)"; \
+		$(SHELL) -ec '$(CPP) -MM $(C++FLAGS) $(INCLUDES) $< | sed '\''/Cstd\/rw/d'\'' > $@'; \
+	fi
+
+# Rule to combine objects into a unix shared library
+$(SHLIBFILE): $(OLIST) $(DICTOBJ)
+	@echo "Making shared library: $(SHLIBFILE)"
+	@rm -f $(SHLIBFILE)
+ifneq (,$(findstring macosx,$(ARCH)))
+	@$(LD) $(LDFLAGS)  -dynamiclib -single_module -undefined dynamic_lookup -O2 $(addprefix $(OBJDIR)/,$(OLIST)) $(DICTOBJ) -o $(SHLIBFILE)
+else
+	@echo $(LD) $(LDFLAGS) $(SOFLAGS)  -O2 $(addprefix $(OBJDIR)/,$(OLIST)) $(DICTOBJ) -o $(SHLIBFILE)
+	@$(LD) $(LDFLAGS) $(SOFLAGS)  -O2 $(addprefix $(OBJDIR)/,$(OLIST)) $(DICTOBJ) -o $(SHLIBFILE)
+endif
+
+# Useful build targets
+shlib: $(SHLIBFILE)
+
+clean:
+	rm -f $(DICTFILE) $(DICTHEAD) $(LIBRARY)_Dict_rdict.pcm
+	rm -f $(OBJDIR)/*.o
+	rm -f $(OBJDIR)/dep/*.d
+	rm -f $(SHLIBFILE)
+	rm -f $(_LIB_PATH)/lib$(LIBRARY).so
+
+distclean:
+	rm -rf $(OBJDIR)
+	rm -rf $(DEPDIR)
+	rm -f $(DICTFILE) $(DICTHEAD)
+	rm -f $(SHLIBFILE)
+	rm -f $(_LIB_PATH)/lib$(LIBRARY).so
+
+.PHONY : shlib default clean print
