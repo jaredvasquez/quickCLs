@@ -156,8 +156,8 @@ int main( int argc, char** argv )
   TFile *tf = new TFile( (TString) _inputFile );
   RooWorkspace *ws = (RooWorkspace*)tf->Get( (TString) _wsName );
   RooStats::ModelConfig *mc = (RooStats::ModelConfig*)ws->obj( (TString) _mcName );
-  RooAbsData *data   = ws->data( (TString) _dataName );
-  RooAbsData *asimov = ws->data( (TString) _asimovName );
+  RooDataSet *data   = (RooDataSet*)ws->data((TString) _dataName);
+  RooDataSet *asimov = (RooDataSet*)ws->data((TString) _asimovName);
 
   // Prepare model as expected
   utils::setAllConstant( mc->GetGlobalObservables(), true );
@@ -231,6 +231,9 @@ int main( int argc, char** argv )
   //int status = 0; //fitter->profileToData( mc, data ); // Perform fit
 
   //limTool->runAsymptoticsCLs(infile.Data(),wname.Data(),mname.Data(),dname.Data(),aname.Data(),pname.Data(),mass,CL,option);
+
+  cout << endl << "Start limit setting:" << endl;
+  limTool->runAsymptoticsCLs( ws, mc, data, asimov, "folder", "125.09", 0.95, "" );
 
   //timer.Stop();
   //double t_cpu_ = timer.CpuTime()/60.;

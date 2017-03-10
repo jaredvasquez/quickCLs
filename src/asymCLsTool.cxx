@@ -39,9 +39,9 @@ asymCLsTool::asymCLsTool() {
 }
 
 
-void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *ws,
-                                      RooStats::ModelConfig *mc,
-                                      RooDataSet *data,
+void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
+                                      RooStats::ModelConfig *mcIn,
+                                      RooDataSet *dataIn,
                                       RooDataSet *asimovData_0,
 		                                  string folder,
 		                                  string mass,
@@ -59,7 +59,9 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *ws,
   //RooNLLVar::SetIgnoreZeroEntries(1);
 
   //check inputs
-  w = ws;
+  w = wsIn;
+  mc = mcIn;
+  data = dataIn;
 
   firstPOI = (RooRealVar*)mc->GetParametersOfInterest()->first();
   if(option.Contains("vbfoggf")) firstPOI=w->var("vbf_o_ggf");
