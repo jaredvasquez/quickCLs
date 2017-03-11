@@ -118,7 +118,7 @@ class asymCLsTool : public TObject {
     void runAsymptoticsCLs(  RooWorkspace *ws,
                RooStats::ModelConfig *mc,
                RooDataSet *data,
-               RooDataSet *asimovData_0,
+               string snapshotIn,
 		           string folder,
 		           string mass,
 		           double CL,

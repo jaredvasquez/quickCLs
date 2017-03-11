@@ -6,26 +6,23 @@
 
 #include "inc/asymCLsTool.h"
 #include "inc/auxUtils.h"
-//#include "inc/fitTool.h"
 
 std::string _outputFile = "";
 std::string _inputFile = "";
 
 std::string _minAlgo  = "Minuit2";
 std::string _dataName = "combData";
-std::string _asimovName = "AsimovB";
 std::string _wsName = "combWS";
 std::string _mcName = "ModelConfig";
 
+std::string _snapshot = "";
 std::string _poiStr = "";
 std::string _fixNPStr = "";
 
-//band configuration
 bool _betterBands = 1;
 bool _betterNegativeBands = 0;
 bool _profileNegativeAtZero = 0;
 
-//other configuration
 int _maxRetries = 3;
 int _printLevel = -1;
 int _minStrategy = 0;
@@ -45,8 +42,7 @@ string OKGREEN = "\033[92m";
 string FAIL = "\033[91m";
 string ENDC = "\033[0m";
 
-int main( int argc, char** argv )
-{
+int main( int argc, char** argv ) {
   namespace po = boost::program_options;
   po::options_description desc( "quickFit options" );
   desc.add_options()
@@ -55,12 +51,12 @@ int main( int argc, char** argv )
     ( "outputFile,o",   po::value<std::string>(&_outputFile), "Save fit results to output TFile" )
     ( "dataName,d",     po::value<std::string>(&_dataName)->default_value(_dataName),   
                           "Name of the observed dataset" )
-    //( "asimovName,a",     po::value<std::string>(&_asimovName)->default_value(_asimovName),   
-    //                      "Name of the Asimov dataset" )
     ( "wsName,w",       po::value<std::string>(&_wsName)->default_value(_wsName),
                           "Name of the workspace" )
     ( "mcName,m",       po::value<std::string>(&_mcName)->default_value(_mcName), 
                           "Name of the model config" )
+    ( "snapshot,s",     po::value<std::string>(&_snapshot)->default_value(_snapshot),   
+                          "Load snapshot for generating Asimov dataset." )
     // Model Options
     ( "poi,p",          po::value<std::string>(&_poiStr),     "Specify POIs to be used in fit" )
     ( "fixNP,n",        po::value<std::string>(&_fixNPStr),   "Specify NPs to be used in fit" )
@@ -168,7 +164,7 @@ int main( int argc, char** argv )
   RooWorkspace *ws = (RooWorkspace*)tf->Get( (TString) _wsName );
   RooStats::ModelConfig *mc = (RooStats::ModelConfig*)ws->obj( (TString) _mcName );
   RooDataSet *data   = (RooDataSet*)ws->data((TString) _dataName);
-  RooDataSet *asimov = (RooDataSet*)ws->data((TString) _asimovName);
+  //RooDataSet *asimov = (RooDataSet*)ws->data((TString) _asimovName);
 
   // Prepare model as expected
   utils::setAllConstant( mc->GetGlobalObservables(), true );
@@ -238,37 +234,8 @@ int main( int argc, char** argv )
   
   mc->SetParametersOfInterest( fitPOIs );
 
-  // Fitting 
-  //TStopwatch timer;
-  //cout << endl << "Starting fit..." << endl;
-  //int status = 0; //fitter->profileToData( mc, data ); // Perform fit
-
-  //limTool->runAsymptoticsCLs(infile.Data(),wname.Data(),mname.Data(),dname.Data(),aname.Data(),pname.Data(),mass,CL,option);
-
   cout << endl << "Start limit setting:" << endl;
-  limTool->runAsymptoticsCLs( ws, mc, data, asimov, "folder", "125.09", 0.95, "" );
-
-  //timer.Stop();
-  //double t_cpu_ = timer.CpuTime()/60.;
-  //double t_real_ = timer.RealTime()/60.;
-  //printf("\nAll fits done in %.2f min (cpu), %.2f min (real)\n", t_cpu_, t_real_);
-
-  //string STATMSG = (status) ? "\033[91m STATUS FAILED \033[0m" : "\033[92m STATUS OK \033[0m" ;
-
-  // Print summary 
-  //cout << endl << "  Fit Summary of POIs (" << STATMSG << ")" << endl;
-  //cout << "------------------------------------------------" << endl;
-  //for (RooLinkedListIter it = fitPOIs.iterator(); RooRealVar* POI = dynamic_cast<RooRealVar*>(it.Next());) {
-  //  if (POI->isConstant()) continue;
-  //  POI->Print();
-  //}
-
-  //if (status) {
-  //  cout << FAIL << endl;
-  //  cout << "   *****************************************" << endl;
-  //  cout << "          WARNING: Fit status failed.       " << endl;
-  //  cout << "   *****************************************" << ENDC << endl;
-  //}
+  limTool->runAsymptoticsCLs( ws, mc, data, _snapshot, "limits", "results", 0.95, "" );
 
   cout << endl;
   return 1;

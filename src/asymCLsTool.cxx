@@ -42,7 +42,7 @@ asymCLsTool::asymCLsTool() {
 void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
                                       RooStats::ModelConfig *mcIn,
                                       RooDataSet *dataIn,
-                                      RooDataSet *asimovData_0,
+                                      string snapshotIn,
 		                                  string folder,
 		                                  string mass,
 		                                  double CL,
@@ -63,22 +63,10 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
   mc = mcIn;
   data = dataIn;
 
+  if (snapshotIn != "") w->loadSnapshot(snapshotIn.c_str());
+
   firstPOI = (RooRealVar*)mc->GetParametersOfInterest()->first();
-
-  if(option.Contains("vbfoggf")) firstPOI=w->var("vbf_o_ggf");
-  if(option.Contains("vhoggf")) firstPOI=w->var("vh_o_ggf");
-  if(option.Contains("tthoggf")) firstPOI=w->var("tth_o_ggf");
-  
-  if(option.Contains("vbfoggf")||option.Contains("vhoggf")||option.Contains("tthoggf")){
-    w->var("vbf_o_ggf")->setRange(0,100);
-    w->var("vh_o_ggf")->setRange(0,100);
-    w->var("tth_o_ggf")->setRange(0,100);
-    w->var("mu_ggf")->setRange(0,100);
-  }
-  
   cout<<"POI name: "<<firstPOI->GetName()<<endl;
-
-  mc->GetParametersOfInterest()->Print("v");
 
   //RooAbsPdf* pdf = mc->GetPdf();
   obs_nll = createNLL(data);//(RooNLLVar*)pdf->createNLL(*data);
@@ -89,12 +77,7 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
   w->saveSnapshot("nominalNuis",*mc->GetNuisanceParameters());
 
   global_status=0;
-  //if (!asimovData_0) {
-  //  asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
-  //  //asimovData_0 = makeAsimovData2((conditionalExpected ? obs_nll : (RooNLLVar*)NULL), 0., 0.);
-  //}
-  
-  asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
+  RooDataSet *asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
 
   int asimov0_status=global_status;
   
@@ -159,7 +142,6 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
       double pr_val = NtimesSigma;
       if (N < 0 && profileNegativeAtZero) pr_val = 0;
       RooDataSet* asimovData_N = makeAsimovData(1, asimov_0_nll, NtimesSigma, &muStr, &muStrPr, pr_val, 0);
-      //RooDataSet* asimovData_N = makeAsimovData2(asimov_0_nll, NtimesSigma, pr_val, &muStr, &muStrPr);
 
       RooNLLVar* asimov_N_nll = createNLL(asimovData_N);//(RooNLLVar*)pdf->createNLL(*asimovData_N);
       map_data_nll[asimovData_N] = asimov_N_nll;
@@ -237,60 +219,60 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
   cout << endl;
 
 
-  system(("mkdir -vp root/" + folder).c_str());
-  system(("mkdir -vp out/" + folder).c_str());
-  
-  stringstream fileName;
-  fileName << "root/" << folder << "/" << mass << ".root";
-  TFile fout(fileName.str().c_str(),"recreate");
+  //system(("mkdir -vp root/" + folder).c_str());
+  //system(("mkdir -vp out/" + folder).c_str());
+  //
+  //stringstream fileName;
+  //fileName << "root/" << folder << "/" << mass << ".root";
+  //TFile fout(fileName.str().c_str(),"recreate");
 
-  ofstream ftxt(Form("out/%s/%s.txt",folder.c_str(),mass.c_str()));
-  ftxt << mass
-       << "\t"<<obs_limit
-       << "\t"<<med_limit
-       << "\t"<<mu_up_p2
-       << "\t"<<mu_up_p1
-       << "\t"<<mu_up_n1
-       << "\t"<<mu_up_n2
-       << endl;
-  ftxt.close();
+  //ofstream ftxt(Form("out/%s/%s.txt",folder.c_str(),mass.c_str()));
+  //ftxt << mass
+  //     << "\t"<<obs_limit
+  //     << "\t"<<med_limit
+  //     << "\t"<<mu_up_p2
+  //     << "\t"<<mu_up_p1
+  //     << "\t"<<mu_up_n1
+  //     << "\t"<<mu_up_n2
+  //     << endl;
+  //ftxt.close();
 
-  TH1D* h_lim = new TH1D("limit","limit",7,0,7);
-  h_lim->SetBinContent(1, obs_limit);
-  h_lim->SetBinContent(2, med_limit);
-  h_lim->SetBinContent(3, mu_up_p2);
-  h_lim->SetBinContent(4, mu_up_p1);
-  h_lim->SetBinContent(5, mu_up_n1);
-  h_lim->SetBinContent(6, mu_up_n2);
-  h_lim->SetBinContent(7, global_status);
+  //TH1D* h_lim = new TH1D("limit","limit",7,0,7);
+  //h_lim->SetBinContent(1, obs_limit);
+  //h_lim->SetBinContent(2, med_limit);
+  //h_lim->SetBinContent(3, mu_up_p2);
+  //h_lim->SetBinContent(4, mu_up_p1);
+  //h_lim->SetBinContent(5, mu_up_n1);
+  //h_lim->SetBinContent(6, mu_up_n2);
+  //h_lim->SetBinContent(7, global_status);
 
-  h_lim->GetXaxis()->SetBinLabel(1, "Observed");
-  h_lim->GetXaxis()->SetBinLabel(2, "Expected");
-  h_lim->GetXaxis()->SetBinLabel(3, "+2sigma");
-  h_lim->GetXaxis()->SetBinLabel(4, "+1sigma");
-  h_lim->GetXaxis()->SetBinLabel(5, "-1sigma");
-  h_lim->GetXaxis()->SetBinLabel(6, "-2sigma");
-  h_lim->GetXaxis()->SetBinLabel(7, "Global status"); // do something with this later
+  //h_lim->GetXaxis()->SetBinLabel(1, "Observed");
+  //h_lim->GetXaxis()->SetBinLabel(2, "Expected");
+  //h_lim->GetXaxis()->SetBinLabel(3, "+2sigma");
+  //h_lim->GetXaxis()->SetBinLabel(4, "+1sigma");
+  //h_lim->GetXaxis()->SetBinLabel(5, "-1sigma");
+  //h_lim->GetXaxis()->SetBinLabel(6, "-2sigma");
+  //h_lim->GetXaxis()->SetBinLabel(7, "Global status"); // do something with this later
 
-  TH1D* h_lim_old = new TH1D("limit_old","limit_old",7,0,7); // include also old approximation of bands
-  h_lim_old->SetBinContent(1, obs_limit);
-  h_lim_old->SetBinContent(2, med_limit);
-  h_lim_old->SetBinContent(3, mu_up_p2_approx);
-  h_lim_old->SetBinContent(4, mu_up_p1_approx);
-  h_lim_old->SetBinContent(5, mu_up_n1_approx);
-  h_lim_old->SetBinContent(6, mu_up_n2_approx);
-  h_lim_old->SetBinContent(7, global_status);
+  //TH1D* h_lim_old = new TH1D("limit_old","limit_old",7,0,7); // include also old approximation of bands
+  //h_lim_old->SetBinContent(1, obs_limit);
+  //h_lim_old->SetBinContent(2, med_limit);
+  //h_lim_old->SetBinContent(3, mu_up_p2_approx);
+  //h_lim_old->SetBinContent(4, mu_up_p1_approx);
+  //h_lim_old->SetBinContent(5, mu_up_n1_approx);
+  //h_lim_old->SetBinContent(6, mu_up_n2_approx);
+  //h_lim_old->SetBinContent(7, global_status);
 
-  h_lim_old->GetXaxis()->SetBinLabel(1, "Observed");
-  h_lim_old->GetXaxis()->SetBinLabel(2, "Expected");
-  h_lim_old->GetXaxis()->SetBinLabel(3, "+2sigma");
-  h_lim_old->GetXaxis()->SetBinLabel(4, "+1sigma");
-  h_lim_old->GetXaxis()->SetBinLabel(5, "-1sigma");
-  h_lim_old->GetXaxis()->SetBinLabel(6, "-2sigma");
-  h_lim_old->GetXaxis()->SetBinLabel(7, "Global status"); 
+  //h_lim_old->GetXaxis()->SetBinLabel(1, "Observed");
+  //h_lim_old->GetXaxis()->SetBinLabel(2, "Expected");
+  //h_lim_old->GetXaxis()->SetBinLabel(3, "+2sigma");
+  //h_lim_old->GetXaxis()->SetBinLabel(4, "+1sigma");
+  //h_lim_old->GetXaxis()->SetBinLabel(5, "-1sigma");
+  //h_lim_old->GetXaxis()->SetBinLabel(6, "-2sigma");
+  //h_lim_old->GetXaxis()->SetBinLabel(7, "Global status"); 
 
-  fout.Write();
-  fout.Close();
+  //fout.Write();
+  //fout.Close();
 
   cout << "Finished with " << nrMinimize << " calls to minimize(nll)" << endl;
   timer.Print();
@@ -897,20 +879,18 @@ void asymCLsTool::unfoldConstraints(RooArgSet& initial, RooArgSet& final, RooArg
 
 
 RooDataSet* asymCLsTool::makeAsimovData( bool doConditional, 
-// ----------------------------------------------------------------------------------------------------- 
                             RooNLLVar* conditioning_nll, 
                             double mu_val, 
                             string* mu_str, 
                             string* mu_prof_str, 
                             double mu_val_profile, 
                             bool doFit)
+// ----------------------------------------------------------------------------------------------------- 
 {
   if (mu_val_profile == -999) mu_val_profile = mu_val;
 
-
   cout << "\nCreating asimov data at mu = " << mu_val << ", profiling at mu = " << mu_val_profile << endl;
 
-  //ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2");
   //int strat = ROOT::Math::MinimizerOptions::SetDefaultStrategy(0);
   //int printLevel = ROOT::Math::MinimizerOptions::DefaultPrintLevel();
   //ROOT::Math::MinimizerOptions::SetDefaultPrintLevel(-1);
@@ -938,14 +918,11 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
   cout<<Option<<endl;
   if(Option.Contains("vbfoggf")){
     mu=w->var("vbf_o_ggf");
-    // doFit=false;
   }
   if(Option.Contains("vhoggf")){
-    // doFit=false;
     mu=w->var("vh_o_ggf");
   }
   if(Option.Contains("tthoggf")){
-    // doFit=false;
     mu=w->var("tth_o_ggf");
   }
   
@@ -977,9 +954,6 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
   while ((arg = (RooAbsArg*)cIter->Next())) {
     RooAbsPdf* pdf = (RooAbsPdf*)arg;
     if (!pdf) continue;
-    //cout << "Printing pdf" << endl;
-    //pdf->Print();
-    //cout << "Done" << endl;
     TIterator* nIter = mc_nuis.createIterator();
     RooRealVar* thisNui = NULL;
     RooAbsArg* nui_arg;
@@ -990,9 +964,6 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
       }
     }
     delete nIter;
-
-    //RooRealVar* thisNui = (RooRealVar*)pdf->getObservables();
-
 
     //need this incase the observable isn't fundamental. 
     //in this case, see which variable is dependent on the nuisance parameter and use that.
@@ -1051,11 +1022,6 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
     nui_list.add(*thisNui);
     glob_list.add(*thisGlob);
 
-    //cout << "\nPrinting Nui/glob" << endl;
-    //thisNui->Print();
-    //cout << "Done nui" << endl;
-    //thisGlob->Print();
-    //cout << "Done glob" << endl;
   }
   delete cIter;
 
@@ -1082,24 +1048,7 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
     mc->GetParametersOfInterest()->Print("v");
     mc->GetNuisanceParameters()->Print("v");
     mc->GetGlobalObservables()->Print("v");
-
     minimize(conditioning_nll);
-    // cout << "Using globs for minimization" << endl;
-    // mc->GetGlobalObservables()->Print("v");
-    // cout << "Starting minimization.." << endl;
-    // RooAbsReal* nll;
-    // if (!(nll = map_data_nll[combData])) nll = combPdf->createNLL(*combData, RooFit::Constrain(nuiSet_tmp));
-    // RooMinimizer minim(*nll);
-    // minim.setStrategy(0);
-    // minim.setPrintLevel(1);
-    // status = minim.minimize(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
-    // if (status != 0)
-    // {
-    //   cout << "Fit failed for mu = " << mu->getVal() << " with status " << status << endl;
-    // }
-    // cout << "Done" << endl;
-
-    //combPdf->fitTo(*combData,Hesse(false),Minos(false),PrintLevel(0),Extended(), Constrain(nuiSet_tmp));
   }
   mu->setConstant(0);
   mu->setVal(mu_val);
@@ -1117,18 +1066,10 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
   for (int i=0; i<nrNuis; i++) {
     RooRealVar* nui = (RooRealVar*)nui_list.at(i);
     RooRealVar* glob = (RooRealVar*)glob_list.at(i);
-
-    //cout << "nui: " << nui << ", glob: " << glob << endl;
-    //cout << "Setting glob: " << glob->GetName() << ", which had previous val: " 
-    //     << glob->getVal() << ", to conditional val: " << nui->getVal() << endl;
-
     glob->setVal(nui->getVal());
   }
 
   //save the snapshots of conditional parameters
-  // cout << "Saving conditional snapshots" << endl;
-  // cout << "Glob snapshot name = " << "conditionalGlobs"+muStrProf.str() << endl;
-  // cout << "Nuis snapshot name = " << "conditionalNuis"+muStrProf.str() << endl;
   w->saveSnapshot(("conditionalGlobs"+muStrProf.str()).c_str(),*mc->GetGlobalObservables());
   w->saveSnapshot(("conditionalNuis" +muStrProf.str()).c_str(),*mc->GetNuisanceParameters());
 
@@ -1146,9 +1087,7 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
 
   const char* weightName="weightVar";
   RooArgSet obsAndWeight;
-  //cout << "adding obs" << endl;
   obsAndWeight.add(*mc->GetObservables());
-  //cout << "adding weight" << endl;
 
   RooRealVar* weightVar = NULL;
   if (!(weightVar = w->var(weightName)))
@@ -1156,22 +1095,14 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
     w->import(*(new RooRealVar(weightName, weightName, 1,0,10000000)));
     weightVar = w->var(weightName);
   }
-  //cout << "weightVar: " << weightVar << endl;
   obsAndWeight.add(*w->var(weightName));
-
-  //cout << "defining set" << endl;
   w->defineSet("obsAndWeight",obsAndWeight);
 
 
   //////////////////////////////////////////////////////
   // MAKE ASIMOV DATA FOR OBSERVABLES
   //////////////////////////////////////////////////////
-
-  // dummy var can just have one bin since it's a dummy
-  //if(w->var("ATLAS_dummyX"))  w->var("ATLAS_dummyX")->setBins(1);
-
-  //cout <<" check expectedData by category"<<endl;
-  //RooDataSet* simData=NULL;
+  
   RooSimultaneous* simPdf = dynamic_cast<RooSimultaneous*>(mc->GetPdf());
 
   RooDataSet* asimovData;
@@ -1401,61 +1332,3 @@ bool asymCLsTool::checkModel(const RooStats::ModelConfig &model, bool throwOnFai
   if (!ok && throwOnFail) throw std::invalid_argument(errors.str());
   return ok;
 }
-
-
-
-//int main(int argc, char* argv[]){
-//  if(argc<4){
-//    cout<<"Usage: "<<argv[0]<<" <jobname> <infile> <mass> <option>"<<endl;
-//    return 0;
-//  }
-//  TString wname, mname, dname, pname, aname;
-//  pname=argv[1];
-//  TString infile=argv[2];
-//  string mass=argv[3];
-//  TString option=argv[4];
-//  double value=0;
-//  if(argc>5) value=atof(argv[5]);
-//
-//  bool m_highCL=option.Contains("highCL");
-//  bool m_changemass=option.Contains("changemass");
-//  bool m_changect=option.Contains("changect");
-//
-//  Option=option;
-//
-//  if(m_changemass){
-//    if(argc<=5) abort();
-//    Hmass=value;
-//  }
-//
-//  if(m_changect){
-//    if(argc<=5) abort();
-//    CT=value;
-//  }
-//
-//  // Change these variables, if you are using different setup
-//  wname="combWS";
-//  mname="ModelConfig";
-//  aname="asimovData_0";
-//  dname="obsData";
-//  dname="AsimovSB"; // Jared
-//
-//  system("mkdir -vp out/"+pname);
-//
-//  if(option.Contains("binned")) dname+="binned";
-//  if(option.Contains("asimovb")) dname="AsimovB";
-//  if(option.Contains("asimovsb")) dname="AsimovSB";
-//  if(option.Contains("combined")){
-//    wname="combined";
-//    mname="ModelConfig";
-//    dname="obsData";
-//  }
-//  double CL=0.95;
-//  if(m_highCL){
-//    cout<<"REGTEST: calculating 99% CL limit"<<endl;
-//    CL=0.99;
-//  }
-//
-//
-//  runAsymptoticsCLs(infile.Data(),wname.Data(),mname.Data(),dname.Data(),aname.Data(),pname.Data(),mass,CL,option);
-//}
