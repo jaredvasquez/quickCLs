@@ -34,7 +34,7 @@ quickCLs -f filename.root -d dataset -p mu_ZH=1_0_5 -n ATLAS_*
 
 Additional features can be discovered by asking for help
 ```
-age: manager [options]
+Usage: manager [options]
 quickFit options:
   -f [ --inputFile ] arg                Specify the input TFile (REQUIRED)
   -o [ --outputFile ] arg               Save fit results to output TFile
