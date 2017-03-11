@@ -56,8 +56,7 @@ quickFit options:
   --printLevel arg (=-1)                Set minimizer print level
   --maxRetries arg (=3)                 Number of minimize (fcn) retries before
                                         giving up
-  --precision arg (=0.0050000000000000001)
-                                        Set % precision in mu that defines
+  --precision arg (=0.005)              Set % precision in mu that defines
                                         iterative cutoff
   --verbose arg (=0)                    Set verbose (very spammy)
   --nllOffset arg (=1)                  Set NLL offset
