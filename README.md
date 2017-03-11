@@ -7,7 +7,7 @@ source setup.sh
 make
 ```
 
-## Fitting your workspace
+## Setting limits
 The script requires you provide a dataset but by default will keep this dataset blinded
 and generate it's own asimov based on the nominal pdf's values or a designated snapshot 
 ( setting the first POI to zero ). 
