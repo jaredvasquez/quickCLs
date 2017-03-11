@@ -34,11 +34,11 @@ quickCLs -f filename.root -d dataset -p mu_ZH=1_0_5 -n ATLAS_*
 
 Additional features can be discovered by asking for help
 ```
-Usage: manager [options]
+age: manager [options]
 quickFit options:
   -f [ --inputFile ] arg                Specify the input TFile (REQUIRED)
   -o [ --outputFile ] arg               Save fit results to output TFile
-  -d [ --dataName ] arg                 Name of the observed dataset
+  -d [ --dataName ] arg (=combData)     Name of the observed dataset
   -w [ --wsName ] arg (=combWS)         Name of the workspace
   -m [ --mcName ] arg (=ModelConfig)    Name of the model config
   -s [ --snapshot ] arg                 Load snapshot for generating Asimov
@@ -56,7 +56,8 @@ quickFit options:
   --printLevel arg (=-1)                Set minimizer print level
   --maxRetries arg (=3)                 Number of minimize (fcn) retries before
                                         giving up
-  --precision arg (=0.005)              Set % precision in mu that defines
+  --precision arg (=0.0050000000000000001)
+                                        Set % precision in mu that defines
                                         iterative cutoff
   --verbose arg (=0)                    Set verbose (very spammy)
   --nllOffset arg (=1)                  Set NLL offset
