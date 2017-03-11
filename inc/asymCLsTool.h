@@ -127,7 +127,7 @@ class asymCLsTool : public TObject {
 		           string folder,
 		           string mass,
 		           double CL,
-		           TString option );
+		           string outputFile );
 
     bool checkModel(const RooStats::ModelConfig &model, bool throwOnFail=false) ;
 };

@@ -137,7 +137,6 @@ int main( int argc, char** argv ) {
   RooStats::ModelConfig *mc = (RooStats::ModelConfig*)ws->obj( (TString) _mcName );
 
   RooDataSet *data = (RooDataSet*)ws->data((TString) _dataName);
-  else _doBlind = true;
 
   // Keep RooFit quiet
   RooMsgService::instance().getStream(1).removeTopic(RooFit::NumIntegration) ;
@@ -240,7 +239,7 @@ int main( int argc, char** argv ) {
   mc->SetParametersOfInterest( fitPOIs );
 
   cout << endl << "Start limit setting:" << endl;
-  limTool->runAsymptoticsCLs( ws, mc, data, _snapshot, "limits", "results", 0.95, "" );
+  limTool->runAsymptoticsCLs( ws, mc, data, _snapshot, "limits", "results", 0.95, _outputFile );
 
   cout << endl;
   return 1;

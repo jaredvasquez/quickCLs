@@ -48,7 +48,7 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
 		                                  string folder,
 		                                  string mass,
 		                                  double CL,
-		                                  TString option  )
+		                                  string outputFile  )
 // ----------------------------------------------------------------------------------------------------- 
 {
   TStopwatch timer;
@@ -221,60 +221,65 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
   cout << endl;
 
 
-  //system(("mkdir -vp root/" + folder).c_str());
-  //system(("mkdir -vp out/" + folder).c_str());
-  //
-  //stringstream fileName;
-  //fileName << "root/" << folder << "/" << mass << ".root";
-  //TFile fout(fileName.str().c_str(),"recreate");
+  if (outputFile != "") {
+    //system(("mkdir -vp root/" + folder).c_str());
+    //system(("mkdir -vp out/" + folder).c_str());
+    //
+    //stringstream fileName;
+    //fileName << "root/" << folder << "/" << mass << ".root";
 
-  //ofstream ftxt(Form("out/%s/%s.txt",folder.c_str(),mass.c_str()));
-  //ftxt << mass
-  //     << "\t"<<obs_limit
-  //     << "\t"<<med_limit
-  //     << "\t"<<mu_up_p2
-  //     << "\t"<<mu_up_p1
-  //     << "\t"<<mu_up_n1
-  //     << "\t"<<mu_up_n2
-  //     << endl;
-  //ftxt.close();
+    //ofstream ftxt(Form("out/%s/%s.txt",folder.c_str(),mass.c_str()));
+    //ftxt << mass
+    //     << "\t"<<obs_limit
+    //     << "\t"<<med_limit
+    //     << "\t"<<mu_up_p2
+    //     << "\t"<<mu_up_p1
+    //     << "\t"<<mu_up_n1
+    //     << "\t"<<mu_up_n2
+    //     << endl;
+    //ftxt.close();
+    
+    TFile fout(outputFile.c_str(), "RECREATE");
 
-  //TH1D* h_lim = new TH1D("limit","limit",7,0,7);
-  //h_lim->SetBinContent(1, obs_limit);
-  //h_lim->SetBinContent(2, med_limit);
-  //h_lim->SetBinContent(3, mu_up_p2);
-  //h_lim->SetBinContent(4, mu_up_p1);
-  //h_lim->SetBinContent(5, mu_up_n1);
-  //h_lim->SetBinContent(6, mu_up_n2);
-  //h_lim->SetBinContent(7, global_status);
+    TH1D* h_lim = new TH1D("limit","limit",7,0,7);
+    h_lim->SetBinContent(1, obs_limit);
+    h_lim->SetBinContent(2, med_limit);
+    h_lim->SetBinContent(3, mu_up_p2);
+    h_lim->SetBinContent(4, mu_up_p1);
+    h_lim->SetBinContent(5, mu_up_n1);
+    h_lim->SetBinContent(6, mu_up_n2);
+    h_lim->SetBinContent(7, global_status);
 
-  //h_lim->GetXaxis()->SetBinLabel(1, "Observed");
-  //h_lim->GetXaxis()->SetBinLabel(2, "Expected");
-  //h_lim->GetXaxis()->SetBinLabel(3, "+2sigma");
-  //h_lim->GetXaxis()->SetBinLabel(4, "+1sigma");
-  //h_lim->GetXaxis()->SetBinLabel(5, "-1sigma");
-  //h_lim->GetXaxis()->SetBinLabel(6, "-2sigma");
-  //h_lim->GetXaxis()->SetBinLabel(7, "Global status"); // do something with this later
+    h_lim->GetXaxis()->SetBinLabel(1, "Observed");
+    h_lim->GetXaxis()->SetBinLabel(2, "Expected");
+    h_lim->GetXaxis()->SetBinLabel(3, "+2sigma");
+    h_lim->GetXaxis()->SetBinLabel(4, "+1sigma");
+    h_lim->GetXaxis()->SetBinLabel(5, "-1sigma");
+    h_lim->GetXaxis()->SetBinLabel(6, "-2sigma");
+    h_lim->GetXaxis()->SetBinLabel(7, "Global status"); // do something with this later
 
-  //TH1D* h_lim_old = new TH1D("limit_old","limit_old",7,0,7); // include also old approximation of bands
-  //h_lim_old->SetBinContent(1, obs_limit);
-  //h_lim_old->SetBinContent(2, med_limit);
-  //h_lim_old->SetBinContent(3, mu_up_p2_approx);
-  //h_lim_old->SetBinContent(4, mu_up_p1_approx);
-  //h_lim_old->SetBinContent(5, mu_up_n1_approx);
-  //h_lim_old->SetBinContent(6, mu_up_n2_approx);
-  //h_lim_old->SetBinContent(7, global_status);
+    TH1D* h_lim_old = new TH1D("limit_old","limit_old",7,0,7); // include also old approximation of bands
+    h_lim_old->SetBinContent(1, obs_limit);
+    h_lim_old->SetBinContent(2, med_limit);
+    h_lim_old->SetBinContent(3, mu_up_p2_approx);
+    h_lim_old->SetBinContent(4, mu_up_p1_approx);
+    h_lim_old->SetBinContent(5, mu_up_n1_approx);
+    h_lim_old->SetBinContent(6, mu_up_n2_approx);
+    h_lim_old->SetBinContent(7, global_status);
 
-  //h_lim_old->GetXaxis()->SetBinLabel(1, "Observed");
-  //h_lim_old->GetXaxis()->SetBinLabel(2, "Expected");
-  //h_lim_old->GetXaxis()->SetBinLabel(3, "+2sigma");
-  //h_lim_old->GetXaxis()->SetBinLabel(4, "+1sigma");
-  //h_lim_old->GetXaxis()->SetBinLabel(5, "-1sigma");
-  //h_lim_old->GetXaxis()->SetBinLabel(6, "-2sigma");
-  //h_lim_old->GetXaxis()->SetBinLabel(7, "Global status"); 
+    h_lim_old->GetXaxis()->SetBinLabel(1, "Observed");
+    h_lim_old->GetXaxis()->SetBinLabel(2, "Expected");
+    h_lim_old->GetXaxis()->SetBinLabel(3, "+2sigma");
+    h_lim_old->GetXaxis()->SetBinLabel(4, "+1sigma");
+    h_lim_old->GetXaxis()->SetBinLabel(5, "-1sigma");
+    h_lim_old->GetXaxis()->SetBinLabel(6, "-2sigma");
+    h_lim_old->GetXaxis()->SetBinLabel(7, "Global status"); 
 
-  //fout.Write();
-  //fout.Close();
+    fout.Write();
+    fout.Close();
+
+    cout << "Results written to " << outputFile << endl << endl;
+  }
 
   cout << "Finished with " << nrMinimize << " calls to minimize(nll)" << endl;
   timer.Print();
