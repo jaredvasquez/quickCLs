@@ -35,7 +35,7 @@ asymCLsTool::asymCLsTool() {
   verbose               = 0;             // 1 = very spammy
   usePredictiveFit      = 0;             // experimental, extrapolate best fit nuisance parameters based on previous fit results
   maxRetries            = 3;             // number of minimize(fcn) retries before giving up
-  _optConst             = 0;             
+  _optConst             = 2;             
   _nllOffset            = 1;
 
 }

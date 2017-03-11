@@ -26,11 +26,13 @@ bool _profileNegativeAtZero = 0;
 int _maxRetries = 3;
 int _printLevel = -1;
 int _minStrategy = 0;
+int _optConst = 2;
 
 bool _doExp = 1;
 bool _verbose = 0;
 bool _doBlind = 1;
 bool _doTilde = 1;
+bool _nllOffset = 1;
 bool _killBelowFatal = 1;
 bool _usePredFit = 0;
 bool _doObs = 1 && !_doBlind;
@@ -79,6 +81,10 @@ int main( int argc, char** argv ) {
                           "Set \% precision in mu that defines iterative cutoff" )
     ( "verbose",        po::value<bool>(&_verbose)->default_value(_verbose),
                           "Set verbose (very spammy)" )
+    ( "nllOffset",     po::value<bool>(&_nllOffset)->default_value(_nllOffset),         
+                         "Set NLL offset" )
+    ( "optConst",      po::value<int>(&_optConst)->default_value(_optConst),
+                         "Set optimize constant" )
     // Limit Options
     ( "doExp",          po::value<bool>(&_doExp)->default_value(_doExp),
                           "Compute expected limit" )
@@ -124,7 +130,16 @@ int main( int argc, char** argv ) {
     std::cout << desc;
     return 0;
   }
+  
+  // Get workspace, model, and data from file
+  TFile *tf = new TFile( (TString) _inputFile );
+  RooWorkspace *ws = (RooWorkspace*)tf->Get( (TString) _wsName );
+  RooStats::ModelConfig *mc = (RooStats::ModelConfig*)ws->obj( (TString) _mcName );
 
+  RooDataSet *data = (RooDataSet*)ws->data((TString) _dataName);
+  else _doBlind = true;
+
+  // Keep RooFit quiet
   RooMsgService::instance().getStream(1).removeTopic(RooFit::NumIntegration) ;
   RooMsgService::instance().getStream(1).removeTopic(RooFit::Fitting) ;
   RooMsgService::instance().getStream(1).removeTopic(RooFit::Minimization) ;
@@ -143,28 +158,18 @@ int main( int argc, char** argv ) {
   limTool->setProfileNegAtZero( _betterNegativeBands );
   limTool->setBetterNegativeBands( _profileNegativeAtZero );
     
-  limTool->setPrecision( _precision );
   limTool->setDoTilde( _doTilde );
   limTool->setDoBlind( _doBlind );
   limTool->setVerbose( _verbose );
   limTool->setDoExpected( _doExp );
+  limTool->setOptConst( _optConst );
+  limTool->setPrecision( _precision );
+  limTool->setNLLOffset( _nllOffset );
   limTool->setMaxRetries( _maxRetries );
   limTool->setPredictiveFit( _usePredFit );
   limTool->setKillBelowFatal( _killBelowFatal );
   limTool->setDoObserved( _doObs && !_doBlind );
   limTool->setCondExpected( _conditionalExpected && !_doBlind );
-
-  //fitter->setOptConst( _optConst );
-  //fitter->setTolerance( _minTolerance );
-  //fitter->setNCPU( _nCPU );
-  //fitter->setOutputFile( (TString) _outputFile );
-
-  // Get workspace, model, and data from file
-  TFile *tf = new TFile( (TString) _inputFile );
-  RooWorkspace *ws = (RooWorkspace*)tf->Get( (TString) _wsName );
-  RooStats::ModelConfig *mc = (RooStats::ModelConfig*)ws->obj( (TString) _mcName );
-  RooDataSet *data   = (RooDataSet*)ws->data((TString) _dataName);
-  //RooDataSet *asimov = (RooDataSet*)ws->data((TString) _asimovName);
 
   // Prepare model as expected
   utils::setAllConstant( mc->GetGlobalObservables(), true );

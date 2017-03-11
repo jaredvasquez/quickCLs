@@ -106,12 +106,14 @@ class asymCLsTool : public TObject {
     void setPrecision( double val ) { precision = val; };
 
     void setStrategy( int val ) { defaultStrategy = val; };
+    void setOptConst( int val ) { _optConst = val; };
     void setMaxRetries( int val ) { maxRetries = val; };
     void setPrintLevel( int val ) { defaultPrintLevel = val; };
 
     void setDoTilde( bool flag ) { doTilde = flag; };
     void setDoBlind( bool flag ) { doBlind = flag; }
     void setVerbose( bool flag ) { verbose = flag; };
+    void setNLLOffset( bool flag ) { _nllOffset = flag; };
     void setDoExpected( bool flag ) { doExp = flag; };
     void setDoObserved( bool flag ) { doObs = flag && !doBlind; };
     void setCondExpected( bool flag ) { conditionalExpected = flag && !doBlind; };

@@ -8,6 +8,9 @@ make
 ```
 
 ## Fitting your workspace
+The script requires you provide a dataset but by default will keep this dataset blinded
+and generate it's own asimov based on the nominal pdf's values or a designated snapshot.
+
 Setting limit on `mu_tH`
 ```
 quickCLs -f filename.root -d dataset -p mu_tH=1_0_50
