@@ -46,7 +46,7 @@ string ENDC = "\033[0m";
 
 int main( int argc, char** argv ) {
   namespace po = boost::program_options;
-  po::options_description desc( "quickFit options" );
+  po::options_description desc( "quickCLs options" );
   desc.add_options()
     // IO Options 
     ( "inputFile,f",    po::value<std::string>(&_inputFile),  "Specify the input TFile (REQUIRED)" )

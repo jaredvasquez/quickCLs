@@ -35,7 +35,7 @@ quickCLs -f filename.root -d dataset -p mu_ZH=1_0_5 -n ATLAS_*
 Additional features can be discovered by asking for help
 ```
 Usage: manager [options]
-quickFit options:
+quickCLs options:
   -f [ --inputFile ] arg                Specify the input TFile (REQUIRED)
   -o [ --outputFile ] arg               Save fit results to output TFile
   -d [ --dataName ] arg (=combData)     Name of the observed dataset
