@@ -23,6 +23,9 @@ class asymCLsTool : public TObject {
     int maxRetries;
     int defaultPrintLevel;
     int defaultStrategy;
+    int _optConst;
+
+    bool _nllOffset;
     bool killBelowFatal;
     bool doBlind;
     bool conditionalExpected;

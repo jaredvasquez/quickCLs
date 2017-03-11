@@ -35,6 +35,8 @@ asymCLsTool::asymCLsTool() {
   verbose               = 0;             // 1 = very spammy
   usePredictiveFit      = 0;             // experimental, extrapolate best fit nuisance parameters based on previous fit results
   maxRetries            = 3;             // number of minimize(fcn) retries before giving up
+  _optConst             = 0;             
+  _nllOffset            = 1;
 
 }
 
@@ -751,11 +753,14 @@ int asymCLsTool::minimize(RooAbsReal* fcn) {
 
   int strat = ROOT::Math::MinimizerOptions::DefaultStrategy();
   int save_strat = strat;
+
   RooMinimizer minim(*fcn);
   minim.setStrategy(strat);
   minim.setPrintLevel(printLevel);
   minim.setProfile();
   minim.setEps(1);
+  minim.setOffsetting( _nllOffset );
+  if (_optConst > 0) minim.optimizeConst( _optConst );
 
   int status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
                                ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
@@ -1327,6 +1332,7 @@ bool asymCLsTool::checkModel(const RooStats::ModelConfig &model, bool throwOnFai
     errors << "WARNING: pdf parameter " << a->GetName() << " (type " << a->ClassName() << ")"
             << " is not allowed to float (it's not nuisance, poi, observable or global observable)\n";
   }
+  
   iter.reset();
   std::cout << errors.str() << std::endl;
   if (!ok && throwOnFail) throw std::invalid_argument(errors.str());
