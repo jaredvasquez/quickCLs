@@ -27,10 +27,3 @@ Fixing all systematics with `ATLAS_*` prefix
 ```
 quickCLs -f filename.root -d dataset -p mu_ZH=1_0_5 -n ATLAS_*
 ```
-
-<!--
-Outputting fit results to `output.root`
-```
-quickCLs -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5 -o output.root
-```
--->
