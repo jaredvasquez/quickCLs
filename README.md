@@ -8,9 +8,9 @@ make
 ```
 
 ## Fitting your workspace
-Simple fit with MIGRAD
+Setting limit on `mu_tH`
 ```
-quickCLs -f filename.root -d dataset -p mu_ggH=1_-5_5,mu_VBF=1_-5_5
+quickCLs -f filename.root -d dataset -p mu_tH=1_0_50
 ```
 
 Setting limit on `mu_ggH` while fixing `mu_VBF=2`
