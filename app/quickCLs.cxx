@@ -55,8 +55,8 @@ int main( int argc, char** argv )
     ( "outputFile,o",   po::value<std::string>(&_outputFile), "Save fit results to output TFile" )
     ( "dataName,d",     po::value<std::string>(&_dataName)->default_value(_dataName),   
                           "Name of the observed dataset" )
-    ( "asimovName,a",     po::value<std::string>(&_asimovName)->default_value(_asimovName),   
-                          "Name of the Asimov dataset" )
+    //( "asimovName,a",     po::value<std::string>(&_asimovName)->default_value(_asimovName),   
+    //                      "Name of the Asimov dataset" )
     ( "wsName,w",       po::value<std::string>(&_wsName)->default_value(_wsName),
                           "Name of the workspace" )
     ( "mcName,m",       po::value<std::string>(&_mcName)->default_value(_mcName), 
@@ -137,20 +137,31 @@ int main( int argc, char** argv )
   RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR);
   
   // Set fit options
-  //fitTool *fitter = new fitTool();
   asymCLsTool *limTool = new asymCLsTool();
-  //fitter->setMinAlgo( (TString) _minAlgo );
-  //fitter->useHESSE( _useHESSE );
-  //fitter->useMINOS( _useMINOS );
-  //fitter->useSIMPLEX( _useSIMPLEX );
-  //fitter->setNLLOffset( _nllOffset );
-  //fitter->setTolerance( _minTolerance );
-  //fitter->setStrategy( _minStrategy );
+
+  limTool->setMinAlgo( _minAlgo );
+  limTool->setStrategy( _minStrategy );
+  limTool->setPrintLevel( _printLevel );
+
+  limTool->setBetterBands( _betterBands );
+  limTool->setProfileNegAtZero( _betterNegativeBands );
+  limTool->setBetterNegativeBands( _profileNegativeAtZero );
+    
+  limTool->setPrecision( _precision );
+  limTool->setDoTilde( _doTilde );
+  limTool->setDoBlind( _doBlind );
+  limTool->setVerbose( _verbose );
+  limTool->setDoExpected( _doExp );
+  limTool->setMaxRetries( _maxRetries );
+  limTool->setPredictiveFit( _usePredFit );
+  limTool->setKillBelowFatal( _killBelowFatal );
+  limTool->setDoObserved( _doObs && !_doBlind );
+  limTool->setCondExpected( _conditionalExpected && !_doBlind );
+
   //fitter->setOptConst( _optConst );
-  //fitter->setPrintLevel( _printLevel );
+  //fitter->setTolerance( _minTolerance );
   //fitter->setNCPU( _nCPU );
   //fitter->setOutputFile( (TString) _outputFile );
-  //fitter->saveWorkspace( _saveWS );
 
   // Get workspace, model, and data from file
   TFile *tf = new TFile( (TString) _inputFile );
