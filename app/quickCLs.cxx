@@ -27,8 +27,8 @@ bool _profileNegativeAtZero = 0;
 
 //other configuration
 int _maxRetries = 3;
-int _printLevel = 0;
-int _minStrategy = 1;
+int _printLevel = -1;
+int _minStrategy = 0;
 
 bool _doExp = 1;
 bool _verbose = 0;
@@ -224,6 +224,8 @@ int main( int argc, char** argv )
     firstPOI->Print();
     fitPOIs.add( *firstPOI );
   }
+  
+  mc->SetParametersOfInterest( fitPOIs );
 
   // Fitting 
   //TStopwatch timer;

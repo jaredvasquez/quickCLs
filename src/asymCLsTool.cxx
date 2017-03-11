@@ -93,7 +93,7 @@ void asymCLsTool::runAsymptoticsCLs(  RooWorkspace *wsIn,
   //  asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
   //  //asimovData_0 = makeAsimovData2((conditionalExpected ? obs_nll : (RooNLLVar*)NULL), 0., 0.);
   //}
-  cout << "Generating asimov with POI = 0" << endl;
+  
   asimovData_0 = makeAsimovData(conditionalExpected, obs_nll, 0);
 
   int asimov0_status=global_status;
@@ -777,8 +777,6 @@ int asymCLsTool::minimize(RooAbsReal* fcn) {
 
   int status = minim.minimize( ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), 
                                ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str());
-  if (status == 0) cout << "Fit succeeded." << endl;
-
 
   // up the strategy
   if (status != 0 && status != 1 && strat < 2) {
@@ -910,7 +908,7 @@ RooDataSet* asymCLsTool::makeAsimovData( bool doConditional,
   if (mu_val_profile == -999) mu_val_profile = mu_val;
 
 
-  cout << "Creating asimov data at mu = " << mu_val << ", profiling at mu = " << mu_val_profile << endl;
+  cout << "\nCreating asimov data at mu = " << mu_val << ", profiling at mu = " << mu_val_profile << endl;
 
   //ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2");
   //int strat = ROOT::Math::MinimizerOptions::SetDefaultStrategy(0);

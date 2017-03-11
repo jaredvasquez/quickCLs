@@ -12,18 +12,18 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/lib:/cvmfs/atlas.cern.ch/repo/ATLA
 # Greet the user
 echo "Setting up environment for compiling/running SFrame"
 
-if [ $_DIRFIT ]; then
-    echo _DIRFIT is already defined, use a clean shell
+if [ $_DIRCLS ]; then
+    echo _DIRCLS is already defined, use a clean shell
     return 1
 fi
 
 # speficy the SFRAME base directory, i.e. the directory in which this file lives
-export _DIRFIT=${PWD}
+export _DIRCLS=${PWD}
 
 # Modify to describe your directory structure. Default is to use the a structure where
 # all directories are below the SFrame base directory specified above
-export _BIN_PATH=${_DIRFIT}/bin
-export _LIB_PATH=${_DIRFIT}/lib
+export _BIN_PATH=${_DIRCLS}/bin
+export _LIB_PATH=${_DIRCLS}/lib
 
 # Check if bin/lib/include directories exist, if not create them
 if [ ! -d ${_BIN_PATH} ]; then
@@ -58,6 +58,6 @@ else
 fi
 
 export PATH=${_BIN_PATH}:${PATH}
-export PYTHONPATH=${_DIRFIT}/python:${PYTHONPATH}
+export PYTHONPATH=${_DIRCLS}/python:${PYTHONPATH}
 
 export PAR_PATH=./:${_LIB_PATH}
