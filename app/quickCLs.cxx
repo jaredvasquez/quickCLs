@@ -133,10 +133,29 @@ int main( int argc, char** argv ) {
   
   // Get workspace, model, and data from file
   TFile *tf = new TFile( (TString) _inputFile );
-  RooWorkspace *ws = (RooWorkspace*)tf->Get( (TString) _wsName );
-  RooStats::ModelConfig *mc = (RooStats::ModelConfig*)ws->obj( (TString) _mcName );
+  if (not tf->IsOpen()) {
+    std::cout << "Error: TFile \'" << _inputFile << "\' was not found." << endl;
+    return 0;
+  }
 
-  RooDataSet *data = (RooDataSet*)ws->data((TString) _dataName);
+  RooWorkspace *ws = (RooWorkspace*)tf->Get( (TString) _wsName );
+  if (ws == nullptr) {
+    std::cout << "Error: Workspace \'" << _wsName << "\' does not exist in the TFile." << endl;
+    return 0;
+  }
+  
+  RooStats::ModelConfig *mc = (RooStats::ModelConfig*)ws->obj( (TString) _mcName );
+  if (mc == nullptr) {
+    std::cout << "Error: ModelConfig \'" << _mcName << "\' does not exist in workspace." << endl;
+    return 0;
+  }
+  
+  RooDataSet *data = (RooDataSet*) ws->data( (TString) _dataName );
+  if (data == nullptr) {
+    std::cout << "Error: Dataset \'" << _dataName << "\' does not exist in workspace." << endl;
+    return 0;
+  }
+
 
   // Keep RooFit quiet
   RooMsgService::instance().getStream(1).removeTopic(RooFit::NumIntegration) ;
@@ -218,6 +237,7 @@ int main( int argc, char** argv ) {
           ws->var(poiName)->setRange( std::stof(poiVals[1]), std::stof(poiVals[2]) );
         } else {
           ws->var(poiName)->setVal( std::stof(poiVals[0]) );
+          ws->var(poiName)->setConstant( kTRUE );
         }
         cout << "   ";
         ws->var(poiName)->Print();
